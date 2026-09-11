@@ -7,6 +7,7 @@ from flask import Flask
 from app.config import get_config
 from app.errors import register_error_handlers
 from app.logging_config import configure_logging
+from app.services.rate_limit import RateLimitedOpenF1Client
 
 
 def create_app(config_name: str | None = None) -> Flask:
@@ -21,6 +22,9 @@ def create_app(config_name: str | None = None) -> Flask:
     app.config.from_object(get_config(config_name))
 
     configure_logging(app)
+    app.extensions["openf1_client"] = RateLimitedOpenF1Client(
+        base_url=app.config["OPENF1_BASE_URL"]
+    )
     _register_blueprints(app)
     register_error_handlers(app)
 
