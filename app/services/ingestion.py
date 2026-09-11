@@ -10,6 +10,7 @@ orchestrates the OpenF1 calls (through the rate-limited client from issue
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -67,13 +68,16 @@ def ingest_session(client: OpenF1Client, session_key: int) -> SessionData:
         session.get("session_type"),
     )
 
+    drivers = client.get_drivers(session_key=session_key)
+    driver_numbers = [d["driver_number"] for d in drivers if d.get("driver_number") is not None]
+
     data = SessionData(
         session_key=session_key,
         session=session,
         meeting=meeting,
-        drivers=client.get_drivers(session_key=session_key),
-        location=client.get_location(session_key=session_key),
-        car_data=client.get_car_data(session_key=session_key),
+        drivers=drivers,
+        location=_fetch_per_driver(client.get_location, session_key, driver_numbers),
+        car_data=_fetch_per_driver(client.get_car_data, session_key, driver_numbers),
         laps=client.get_laps(session_key=session_key),
         position=client.get_position(session_key=session_key),
         intervals=client.get_intervals(session_key=session_key),
@@ -100,3 +104,20 @@ def ingest_session(client: OpenF1Client, session_key: int) -> SessionData:
     )
 
     return data
+
+
+def _fetch_per_driver(
+    method: Callable[..., list[dict[str, Any]]],
+    session_key: int,
+    driver_numbers: list[int],
+) -> list[dict[str, Any]]:
+    """Call an OpenF1 endpoint once per driver and concatenate the results.
+
+    OpenF1 rejects ``location``/``car_data`` queries scoped to just
+    ``session_key`` with a 422 ("You're likely asking for too much data at
+    once") — those two endpoints require a ``driver_number`` filter.
+    """
+    records: list[dict[str, Any]] = []
+    for driver_number in driver_numbers:
+        records.extend(method(session_key=session_key, driver_number=driver_number))
+    return records
