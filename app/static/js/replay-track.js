@@ -1,9 +1,13 @@
-/* Static 3D track view for issue #11: fetch the track shape from the
- * internal replay API (/api/session/<key>/track, cache-backed — see
- * app/routes/replay.py) and render it with Three.js. No cars/playback
- * yet — that's #12 (animate) and #13 (controls). */
+/* 3D track + car replay. Issue #11 built the static track shape; this
+ * (#12) adds the moving cars, fetched from /api/session/<key>/cars
+ * (cache-backed — see app/routes/replay.py) and animated along their
+ * real downsampled position-over-time data. Playback is a fixed
+ * accelerated auto-loop for now — play/pause/speed/scrub controls land
+ * in #13. */
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+
+const PLAYBACK_SPEED = 20; // sim-seconds per real second, until #13 adds a control for this
 
 const canvas = document.getElementById("replay-canvas");
 const status = document.getElementById("replay-status");
@@ -37,7 +41,8 @@ async function main() {
   }
 
   setStatus(`Trazado: ${track.points.length} puntos (piloto #${track.driver_number})`);
-  initScene(track.points);
+  const { scene, center, spacing } = initScene(track.points);
+  loadCars(scene, center, spacing);
 }
 
 function averageSpacing(vectors) {
@@ -116,12 +121,97 @@ function initScene(points) {
     renderer.setSize(window.innerWidth, window.innerHeight);
   });
 
+  const clock = new THREE.Clock();
+  let simTime = 0;
+
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
+
+    if (carState.maxT > 0) {
+      simTime = (simTime + clock.getDelta() * PLAYBACK_SPEED) % carState.maxT;
+      updateCars(simTime);
+    }
+
     renderer.render(scene, camera);
   }
   animate();
+
+  return { scene, center, spacing };
+}
+
+// Populated once /cars loads; the animate loop above reads carState.maxT
+// every frame to know whether (and how) to advance the cars.
+const carState = { cars: [], maxT: 0 };
+
+async function loadCars(scene, center, spacing) {
+  let payload;
+  try {
+    const response = await fetch(`/api/session/${encodeURIComponent(sessionKey)}/cars`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    payload = await response.json();
+  } catch (err) {
+    console.error("F1Scope: failed to load car positions", err);
+    return;
+  }
+
+  const drivers = payload.drivers || [];
+  if (!drivers.length) {
+    console.warn("F1Scope: no car position data for this session");
+    return;
+  }
+
+  const carRadius = Math.max(spacing * 1.5, 3);
+  const geometry = new THREE.SphereGeometry(carRadius, 12, 12);
+
+  let maxT = 0;
+  for (const driver of drivers) {
+    if (!driver.points.length) continue;
+
+    const material = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(`#${driver.team_colour}`),
+      emissive: new THREE.Color(`#${driver.team_colour}`),
+      emissiveIntensity: 0.5,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+
+    // Same OpenF1 (x,y,z) -> Three.js (x,z,y) mapping and re-centering
+    // used for the track itself, so cars line up with it.
+    const points = driver.points.map((p) => ({
+      t: p.t,
+      pos: new THREE.Vector3(p.x, p.z, p.y).sub(center),
+    }));
+    mesh.position.copy(points[0].pos);
+    scene.add(mesh);
+
+    carState.cars.push({ driverNumber: driver.driver_number, points, mesh, cursor: 0 });
+    maxT = Math.max(maxT, points[points.length - 1].t);
+  }
+  carState.maxT = maxT;
+
+  const carCount = carState.cars.length;
+  status.textContent += ` · ${carCount} auto${carCount === 1 ? "" : "s"} animándose`;
+}
+
+function updateCars(simTime) {
+  for (const car of carState.cars) {
+    const { points } = car;
+
+    if (simTime < points[car.cursor].t) {
+      car.cursor = 0; // playback looped back to the start
+    }
+    while (car.cursor < points.length - 2 && points[car.cursor + 1].t <= simTime) {
+      car.cursor++;
+    }
+
+    const a = points[car.cursor];
+    const b = points[Math.min(car.cursor + 1, points.length - 1)];
+    const span = b.t - a.t || 1;
+    const frac = Math.min(1, Math.max(0, (simTime - a.t) / span));
+    car.mesh.position.lerpVectors(a.pos, b.pos, frac);
+  }
 }
 
 main();
