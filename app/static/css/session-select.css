@@ -56,6 +56,10 @@
   font-size: 0.8rem;
 }
 
+.replay-link {
+  color: #18e0ff;
+}
+
 .driver-picker {
   margin-top: 1.5rem;
   text-align: left;

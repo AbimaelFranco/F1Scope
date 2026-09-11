@@ -7,6 +7,7 @@ from flask import Flask
 from app.config import get_config
 from app.errors import register_error_handlers
 from app.logging_config import configure_logging
+from app.services.cache import SessionCache
 from app.services.rate_limit import RateLimitedOpenF1Client
 
 
@@ -25,6 +26,7 @@ def create_app(config_name: str | None = None) -> Flask:
     app.extensions["openf1_client"] = RateLimitedOpenF1Client(
         base_url=app.config["OPENF1_BASE_URL"]
     )
+    app.extensions["session_cache"] = SessionCache(app.config["CACHE_DIR"])
     _register_blueprints(app)
     register_error_handlers(app)
 
@@ -35,7 +37,9 @@ def create_app(config_name: str | None = None) -> Flask:
 
 def _register_blueprints(app: Flask) -> None:
     from app.routes.api import api_bp
+    from app.routes.replay import replay_bp
     from app.routes.views import views_bp
 
     app.register_blueprint(views_bp)
     app.register_blueprint(api_bp, url_prefix="/api")
+    app.register_blueprint(replay_bp, url_prefix="/api/session")
