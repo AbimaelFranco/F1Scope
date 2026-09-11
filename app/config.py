@@ -4,6 +4,7 @@ Values are read from environment variables (see .env.example) so the same
 codebase runs the same way locally and inside the Docker container. Nothing
 here requires a real secret for v1 — OpenF1's free tier needs no API key.
 """
+
 from __future__ import annotations
 
 import os

@@ -9,6 +9,7 @@ to Werkzeug's interactive debugger instead of calling these handlers — that
 is the desired local-dev experience. These handlers take over in
 production/testing, where DEBUG is False.
 """
+
 from __future__ import annotations
 
 from flask import Flask, jsonify, render_template, request
