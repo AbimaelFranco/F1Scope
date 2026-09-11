@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "F1Scope — Arquitectura",
+    "output": "f1scope-architecture.html",
+    "quality_profile": "showcase",
+    "views": [
+      { "id": "carga-inicial", "label": "Carga inicial", "focus": ["user", "frontend", "flask_views"], "note": "El navegador pide la app y Flask sirve la SPA (Jinja2 + estáticos)." },
+      { "id": "ingesta", "label": "Ingesta desde OpenF1", "focus": ["flask_api", "ingestion", "cache_db", "openf1_api"], "note": "Al elegir una sesión, la capa de ingesta descarga una sola vez desde OpenF1 y persiste en la caché local." },
+      { "id": "replay-telemetria", "label": "Replay y telemetría", "focus": ["frontend", "flask_api", "cache_db"], "note": "El replay 3D y los gráficos siempre leen de la caché local, nunca de OpenF1 en cada frame." }
+    ]
+  },
+  "components": [
+    { "id": "user", "type": "external", "label": "Usuario", "sublabel": "navegador web", "pos": [30, 260], "size": [120, 60] },
+    { "id": "frontend", "type": "frontend", "label": "F1Scope UI", "sublabel": "Three.js + HUD cyberpunk", "pos": [220, 250], "size": [160, 74] },
+    { "id": "flask_views", "type": "backend", "label": "Flask · Vistas web", "sublabel": "Jinja2 + estáticos", "pos": [480, 120], "size": [160, 64] },
+    { "id": "flask_api", "type": "backend", "label": "Flask · API interna", "sublabel": "/api/...", "pos": [480, 320], "size": [160, 64] },
+    { "id": "ingestion", "type": "backend", "label": "Ingesta + caché", "sublabel": "cliente OpenF1 + rate-limit", "pos": [730, 320], "size": [180, 70] },
+    { "id": "cache_db", "type": "database", "label": "Caché de sesión", "sublabel": "SQLite / archivos locales", "pos": [730, 470], "size": [180, 60] },
+    { "id": "openf1_api", "type": "external", "label": "OpenF1 API", "sublabel": "api.openf1.org · solo lectura", "pos": [990, 320], "size": [170, 64] }
+  ],
+  "boundaries": [
+    { "kind": "region", "label": "Contenedor Docker (docker-compose) · volumen persistente", "wraps": ["flask_views", "flask_api", "ingestion", "cache_db"] }
+  ],
+  "connections": [
+    { "id": "user-frontend", "from": "user", "to": "frontend", "label": "usa la app", "variant": "emphasis" },
+    { "id": "frontend-views", "from": "frontend", "to": "flask_views", "label": "GET / (carga inicial)", "fromSide": "top", "toSide": "left" },
+    { "id": "frontend-api", "from": "frontend", "to": "flask_api", "label": "fetch /api/... (sesión, replay, telemetría)", "variant": "emphasis", "labelAt": [430, 398] },
+    { "id": "api-ingestion", "from": "flask_api", "to": "ingestion", "label": "solicita datos de la sesión", "labelDy": 56 },
+    { "id": "ingestion-cache", "from": "ingestion", "to": "cache_db", "label": "lee / escribe caché local", "labelDy": 24 },
+    { "id": "ingestion-openf1", "from": "ingestion", "to": "openf1_api", "label": "descarga por sesión, una sola vez (≤3 req/s)", "variant": "dashed", "labelDy": 59 }
+  ],
+  "cards": [
+    { "dot": "cyan", "title": "Cliente", "items": ["Three.js reconstruye el trazado y anima los autos con los datos de location (x,y,z)", "Gráficos sincronizados por timestamp para comparar telemetría entre pilotos", "Tema visual cyberpunk/HUD"] },
+    { "dot": "emerald", "title": "Backend Flask", "items": ["Vistas web (Jinja2 + estáticos) separadas de la API interna", "La API interna solo sirve datos ya cacheados, nunca reenvía tráfico en vivo a OpenF1"] },
+    { "dot": "amber", "title": "Datos", "items": ["OpenF1 se consulta solo en la ingesta inicial de cada sesión (histórico desde 2023, sin autenticación)", "La caché local persiste en un volumen Docker entre reinicios", "v1 no usa base de datos externa ni servicios adicionales"] }
+  ]
+}
