@@ -36,6 +36,12 @@
     </div>
 
     <section id="session-summary" class="session-summary" hidden></section>
+
+    <section id="driver-picker" class="driver-picker" hidden>
+      <h2>Comparar pilotos</h2>
+      <p id="driver-picker-hint" class="hint">Selecciona hasta 2 pilotos para comparar.</p>
+      <div id="driver-list" class="driver-list"></div>
+    </section>
   </main>
 
   <script src="{{ url_for('static', filename='js/session-select.js') }}"></script>
