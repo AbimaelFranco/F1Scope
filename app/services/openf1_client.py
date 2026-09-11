@@ -21,7 +21,17 @@ DEFAULT_TIMEOUT = 10  # seconds
 
 
 class OpenF1ClientError(Exception):
-    """Raised when a request to the OpenF1 API fails or returns unusable data."""
+    """Raised when a request to the OpenF1 API fails or returns unusable data.
+
+    ``status_code`` is set when the failure came from an HTTP error response
+    (e.g. 404, 429, 500) and left ``None`` for transport-level failures
+    (timeouts, connection errors) or bad response bodies. The rate-limited
+    client (issue #5) uses it to decide what's worth retrying.
+    """
+
+    def __init__(self, message: str, *, status_code: int | None = None) -> None:
+        super().__init__(message)
+        self.status_code = status_code
 
 
 class OpenF1Client:
@@ -54,6 +64,11 @@ class OpenF1Client:
         try:
             response = self.session.get(url, params=query, timeout=self.timeout)
             response.raise_for_status()
+        except requests.HTTPError as exc:
+            status_code = exc.response.status_code if exc.response is not None else None
+            raise OpenF1ClientError(
+                f"OpenF1 request to {endpoint!r} failed: {exc}", status_code=status_code
+            ) from exc
         except requests.RequestException as exc:
             raise OpenF1ClientError(f"OpenF1 request to {endpoint!r} failed: {exc}") from exc
 
