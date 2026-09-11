@@ -7,10 +7,17 @@
 
   const FIRST_SEASON = 2023; // OpenF1's free tier only has data from 2023 onwards
 
+  const MAX_COMPARED_DRIVERS = 2; // v1 scope (docs/PLANNING.md): compare exactly two drivers
+
   const yearSelect = document.getElementById("year-select");
   const meetingSelect = document.getElementById("meeting-select");
   const sessionSelect = document.getElementById("session-select");
   const summary = document.getElementById("session-summary");
+  const driverPicker = document.getElementById("driver-picker");
+  const driverPickerHint = document.getElementById("driver-picker-hint");
+  const driverList = document.getElementById("driver-list");
+
+  const selectedDrivers = new Set();
 
   async function fetchJSON(url) {
     const response = await fetch(url);
@@ -45,8 +52,15 @@
     summary.innerHTML = "";
   }
 
+  function clearDriverPicker() {
+    driverPicker.hidden = true;
+    driverList.innerHTML = "";
+    selectedDrivers.clear();
+  }
+
   async function onYearChange() {
     clearSummary();
+    clearDriverPicker();
     resetSelect(sessionSelect, "Selecciona un Gran Premio primero");
 
     const year = yearSelect.value;
@@ -74,6 +88,7 @@
 
   async function onMeetingChange() {
     clearSummary();
+    clearDriverPicker();
 
     const meetingKey = meetingSelect.value;
     if (!meetingKey) {
@@ -103,6 +118,7 @@
     const option = sessionSelect.selectedOptions[0];
     if (!option || !option.value) {
       clearSummary();
+      clearDriverPicker();
       updateUrl(null);
       return;
     }
@@ -120,14 +136,87 @@
       <p class="session-key">session_key: ${session.session_key}</p>
     `;
     updateUrl(session.session_key);
+    loadDrivers(session.session_key);
   }
 
-  function updateUrl(sessionKey) {
+  async function loadDrivers(sessionKey) {
+    clearDriverPicker();
+    driverPicker.hidden = false;
+    driverPickerHint.textContent = "Cargando pilotos...";
+
+    try {
+      const drivers = await fetchJSON(`/api/drivers?session_key=${encodeURIComponent(sessionKey)}`);
+      if (!drivers.length) {
+        driverPickerHint.textContent = "Sin pilotos registrados para esta sesión.";
+        return;
+      }
+      for (const driver of drivers) {
+        driverList.appendChild(renderDriverOption(driver));
+      }
+      updateDriverPickerHint();
+    } catch (err) {
+      driverPickerHint.textContent = "Error al cargar pilotos.";
+      console.error("F1Scope: failed to load drivers", err);
+    }
+  }
+
+  function renderDriverOption(driver) {
+    const label = document.createElement("label");
+    label.className = "driver-option";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = String(driver.driver_number);
+    checkbox.addEventListener("change", onDriverToggle);
+
+    const swatch = document.createElement("span");
+    swatch.className = "driver-swatch";
+    swatch.style.backgroundColor = `#${driver.team_colour || "888888"}`;
+
+    const text = document.createElement("span");
+    text.className = "driver-name";
+    text.textContent = `${driver.name_acronym} — ${driver.full_name} (${driver.team_name})`;
+
+    label.append(checkbox, swatch, text);
+    return label;
+  }
+
+  function onDriverToggle(event) {
+    const driverNumber = event.target.value;
+    if (event.target.checked) {
+      selectedDrivers.add(driverNumber);
+    } else {
+      selectedDrivers.delete(driverNumber);
+    }
+
+    const atLimit = selectedDrivers.size >= MAX_COMPARED_DRIVERS;
+    for (const checkbox of driverList.querySelectorAll("input[type=checkbox]")) {
+      checkbox.disabled = atLimit && !checkbox.checked;
+    }
+
+    updateDriverPickerHint();
+    updateUrl(sessionSelect.value, [...selectedDrivers]);
+  }
+
+  function updateDriverPickerHint() {
+    const remaining = MAX_COMPARED_DRIVERS - selectedDrivers.size;
+    driverPickerHint.textContent =
+      remaining > 0
+        ? `Selecciona ${remaining} piloto${remaining === 1 ? "" : "s"} más para comparar.`
+        : "2 pilotos seleccionados.";
+  }
+
+  function updateUrl(sessionKey, driverNumbers) {
     const url = new URL(window.location.href);
     if (sessionKey) {
       url.searchParams.set("session_key", sessionKey);
     } else {
       url.searchParams.delete("session_key");
+    }
+    if (driverNumbers && driverNumbers.length) {
+      url.searchParams.set("drivers", driverNumbers.join(","));
+    } else {
+      url.searchParams.delete("drivers");
     }
     window.history.replaceState({}, "", url);
   }
