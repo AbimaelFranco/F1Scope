@@ -1,0 +1,51 @@
+/* Full-viewport 3D replay canvas. Overrides base.css's centered-flex body
+   layout, which is meant for the narrower selection/error pages. */
+
+body.replay-body {
+  display: block;
+  overflow: hidden;
+}
+
+#replay-canvas {
+  position: fixed;
+  inset: 0;
+  display: block;
+  width: 100vw;
+  height: 100vh;
+}
+
+.replay-status {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 10;
+  max-width: min(80vw, 420px);
+  padding: 0.5rem 0.75rem;
+  background: rgba(5, 7, 12, 0.75);
+  border: 1px solid #2a3242;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.replay-status.error {
+  border-color: #b33355;
+  color: #ffb3c6;
+}
+
+.replay-back {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 10;
+  padding: 0.4rem 0.75rem;
+  background: rgba(5, 7, 12, 0.75);
+  border: 1px solid #2a3242;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.replay-back:hover {
+  border-color: #4a5670;
+}

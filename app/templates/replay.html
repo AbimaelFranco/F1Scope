@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>F1Scope — Replay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/replay.css') }}">
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "{{ url_for('static', filename='js/vendor/three.module.js') }}",
+        "three/addons/controls/OrbitControls.js": "{{ url_for('static', filename='js/vendor/OrbitControls.js') }}"
+      }
+    }
+  </script>
+</head>
+<body class="replay-body">
+  <div id="replay-status" class="replay-status">Cargando trazado...</div>
+  <a href="/" class="replay-back">&larr; Volver a selección</a>
+  <canvas id="replay-canvas"></canvas>
+
+  <script
+    type="module"
+    id="replay-track-script"
+    src="{{ url_for('static', filename='js/replay-track.js') }}"
+    data-session-key="{{ session_key }}"
+  ></script>
+</body>
+</html>
