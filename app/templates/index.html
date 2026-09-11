@@ -5,11 +5,39 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>F1Scope</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/session-select.css') }}">
 </head>
 <body>
-  <main class="placeholder">
+  <main class="session-select">
     <h1>F1Scope</h1>
-    <p>Visualizador de telemetría de Fórmula 1 — en construcción.</p>
+    <p class="tagline">Selecciona una carrera para analizar.</p>
+
+    <div class="selectors">
+      <label>
+        Año
+        <select id="year-select">
+          <option value="">Selecciona un año</option>
+        </select>
+      </label>
+
+      <label>
+        Gran Premio
+        <select id="meeting-select" disabled>
+          <option value="">Selecciona un año primero</option>
+        </select>
+      </label>
+
+      <label>
+        Sesión
+        <select id="session-select" disabled>
+          <option value="">Selecciona un Gran Premio primero</option>
+        </select>
+      </label>
+    </div>
+
+    <section id="session-summary" class="session-summary" hidden></section>
   </main>
+
+  <script src="{{ url_for('static', filename='js/session-select.js') }}"></script>
 </body>
 </html>

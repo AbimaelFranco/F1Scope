@@ -1,0 +1,57 @@
+/* Layout for the session-selection view. Restyled with the cyberpunk/HUD
+   theme in milestone E7 — this is just enough to make the flow usable. */
+
+.session-select {
+  width: min(90vw, 480px);
+  text-align: center;
+}
+
+.tagline {
+  margin-top: 0;
+  opacity: 0.8;
+}
+
+.selectors {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  text-align: left;
+  margin-top: 2rem;
+}
+
+.selectors label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.9rem;
+}
+
+.selectors select {
+  padding: 0.5rem;
+  background: #10151f;
+  color: inherit;
+  border: 1px solid #2a3242;
+  border-radius: 4px;
+  font: inherit;
+}
+
+.selectors select:disabled {
+  opacity: 0.5;
+}
+
+.session-summary {
+  margin-top: 2rem;
+  padding: 1rem;
+  border: 1px solid #2a3242;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.session-summary h2 {
+  margin: 0 0 0.5rem;
+}
+
+.session-summary .session-key {
+  opacity: 0.6;
+  font-size: 0.8rem;
+}
