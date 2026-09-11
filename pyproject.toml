@@ -1,0 +1,23 @@
+[project]
+name = "f1scope"
+version = "0.1.0"
+description = "Interactive 3D Formula 1 race replay and telemetry analysis powered by OpenF1."
+requires-python = ">=3.11"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv", ".venv-smoketest", "docs/architecture"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "I",   # import sorting
+  "UP",  # pyupgrade (modern syntax)
+  "B",   # bugbear (common bug patterns)
+  "SIM", # simplification
+]
+
+[tool.ruff.format]
+quote-style = "double"

@@ -5,6 +5,7 @@ cache (see docs/PLANNING.md section 2) — it never proxies live requests to
 OpenF1 on the frontend's behalf. The ingestion/cache endpoints land in a
 later issue (milestone E2).
 """
+
 from flask import Blueprint, jsonify
 
 api_bp = Blueprint("api", __name__)

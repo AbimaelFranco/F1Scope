@@ -1,4 +1,5 @@
 """F1Scope Flask application factory."""
+
 from __future__ import annotations
 
 from flask import Flask

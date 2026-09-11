@@ -4,6 +4,7 @@ Attaches a single console handler with a consistent format to the Flask
 app logger. Verbosity follows the app's DEBUG flag, so local development
 stays noisy while production/testing stay at INFO.
 """
+
 from __future__ import annotations
 
 import logging

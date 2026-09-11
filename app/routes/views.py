@@ -4,6 +4,7 @@ Serves the Jinja2 templates and static assets (Three.js scene, telemetry
 charts, cyberpunk theme). Kept separate from the internal JSON API in
 app/routes/api.py — see docs/architecture/ for the full request flow.
 """
+
 from flask import Blueprint, render_template
 
 views_bp = Blueprint("views", __name__)
