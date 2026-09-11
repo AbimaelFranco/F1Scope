@@ -4,6 +4,8 @@ from __future__ import annotations
 from flask import Flask
 
 from app.config import get_config
+from app.errors import register_error_handlers
+from app.logging_config import configure_logging
 
 
 def create_app(config_name: str | None = None) -> Flask:
@@ -17,7 +19,11 @@ def create_app(config_name: str | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(get_config(config_name))
 
+    configure_logging(app)
     _register_blueprints(app)
+    register_error_handlers(app)
+
+    app.logger.info("F1Scope starting (debug=%s)", app.debug)
 
     return app
 
