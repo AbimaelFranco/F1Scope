@@ -63,6 +63,14 @@ class OpenF1Client:
 
         try:
             response = self.session.get(url, params=query, timeout=self.timeout)
+            if response.status_code == 404:
+                # OpenF1 returns 404 {"detail": "No results found."} for a
+                # valid query that simply matches nothing (e.g. a session
+                # with no pit stops) — on our own well-known endpoints that
+                # means "empty result", not a real error. A genuinely wrong
+                # request comes back as 4xx/5xx elsewhere, still raised below.
+                logger.debug("OpenF1 %r returned no results (404) for params=%s", endpoint, query)
+                return []
             response.raise_for_status()
         except requests.HTTPError as exc:
             status_code = exc.response.status_code if exc.response is not None else None
