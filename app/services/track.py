@@ -82,6 +82,25 @@ def _group_by_driver(location: list[dict[str, Any]]) -> dict[int, list[dict[str,
     return by_driver
 
 
+def session_time_origin(location: list[dict[str, Any]]) -> datetime | None:
+    """Earliest timestamp across every driver's usable location samples.
+
+    The shared ``t=0`` reference for both :func:`build_car_positions` and
+    ``telemetry.build_telemetry`` — issue #16 uses it to convert the 3D
+    replay's session-wide playback clock into "seconds into this specific
+    lap" for each driver's telemetry chart, so a time cursor can sync the
+    two views even though the charts use lap-local time.
+    """
+    by_driver = _group_by_driver(location)
+    if not by_driver:
+        return None
+    return min(
+        datetime.fromisoformat(sample["date"])
+        for samples in by_driver.values()
+        for sample in samples
+    )
+
+
 def build_car_positions(
     location: list[dict[str, Any]],
     drivers: list[dict[str, Any]],
@@ -106,11 +125,7 @@ def build_car_positions(
     if not by_driver:
         return {"drivers": []}
 
-    session_start = min(
-        datetime.fromisoformat(sample["date"])
-        for samples in by_driver.values()
-        for sample in samples
-    )
+    session_start = session_time_origin(location)
     driver_info = {d["driver_number"]: d for d in drivers if d.get("driver_number") is not None}
 
     result: list[dict[str, Any]] = []

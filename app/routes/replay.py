@@ -13,7 +13,7 @@ from flask import Blueprint, current_app, jsonify, request
 from app.services.cache import get_or_ingest_session
 from app.services.ingestion import SessionData, SessionIngestionError
 from app.services.telemetry import TelemetryError, build_telemetry
-from app.services.track import build_car_positions, build_track
+from app.services.track import build_car_positions, build_track, session_time_origin
 
 replay_bp = Blueprint("replay", __name__)
 
@@ -58,9 +58,12 @@ def get_telemetry(session_key: int):
         return jsonify(error="bad_request", message="driver_number is required"), 400
 
     lap_number = request.args.get("lap_number", type=int)
+    session_origin = session_time_origin(data.location)
 
     try:
-        telemetry = build_telemetry(data.car_data, data.laps, driver_number, lap_number)
+        telemetry = build_telemetry(
+            data.car_data, data.laps, driver_number, lap_number, session_origin=session_origin
+        )
     except TelemetryError as exc:
         return jsonify(error="no_telemetry_data", message=str(exc)), 404
 
