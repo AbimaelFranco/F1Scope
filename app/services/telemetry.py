@@ -21,6 +21,7 @@ def build_telemetry(
     laps: list[dict[str, Any]],
     driver_number: int,
     lap_number: int | None = None,
+    session_origin: datetime | None = None,
 ) -> dict[str, Any]:
     """Build one driver's telemetry series, windowed to a single lap.
 
@@ -30,9 +31,19 @@ def build_telemetry(
     ``app.services.track.build_track``. Falls back to the driver's full
     trace if no lap window can be resolved.
 
-    Returns ``{"driver_number", "lap_number", "points": [{"t", "speed",
-    "throttle", "brake", "rpm", "n_gear"}, ...]}``, with ``t`` seconds
-    elapsed since the window (or trace) start.
+    ``points`` stay in lap-local time (``t=0`` at the window/trace start)
+    so two drivers' laps overlay cleanly for comparison regardless of
+    when in the session each happened. ``session_origin`` — the same
+    reference ``track.session_time_origin`` gives ``build_car_positions``
+    — is used only to additionally report ``lap_start_offset``: how many
+    seconds into the *session* this lap started, so the frontend can
+    convert the 3D replay's session-wide clock into "seconds into this
+    lap" and know when to show a synced time cursor (issue #16).
+
+    Returns ``{"driver_number", "lap_number", "lap_start_offset",
+    "points": [{"t", "speed", "throttle", "brake", "rpm", "n_gear"}, ...]}``.
+    ``lap_start_offset`` is ``None`` when no lap window was resolved, or
+    when ``session_origin`` wasn't given.
     """
     samples = [s for s in car_data if s.get("driver_number") == driver_number]
     if not samples:
@@ -44,6 +55,7 @@ def build_telemetry(
         raise TelemetryError(f"No lap {lap_number!r} on record for driver_number={driver_number!r}")
 
     origin = datetime.fromisoformat(samples[0]["date"])
+    lap_start_offset = None
     if lap is not None:
         start = datetime.fromisoformat(lap["date_start"])
         end = start + timedelta(seconds=lap["lap_duration"])
@@ -51,6 +63,8 @@ def build_telemetry(
         if windowed:
             samples = windowed
             origin = start
+        if session_origin is not None:
+            lap_start_offset = (start - session_origin).total_seconds()
 
     points = [
         {
@@ -67,6 +81,7 @@ def build_telemetry(
     return {
         "driver_number": driver_number,
         "lap_number": lap["lap_number"] if lap else None,
+        "lap_start_offset": lap_start_offset,
         "points": points,
     }
 

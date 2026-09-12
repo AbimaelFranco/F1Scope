@@ -14,7 +14,12 @@ const sessionKey = document.getElementById("replay-track-script").dataset.sessio
 // Shared playback state: the animate() loop and the control panel both
 // read/write this, so a scrub-bar drag and the auto-advancing clock never
 // fight each other (advancement pauses while playback.scrubbing is true).
-const playback = { simTime: 0, speed: DEFAULT_PLAYBACK_SPEED, playing: true, scrubbing: false };
+export const playback = {
+  simTime: 0,
+  speed: DEFAULT_PLAYBACK_SPEED,
+  playing: true,
+  scrubbing: false,
+};
 let controlEls = null;
 
 function setStatus(text, { isError = false } = {}) {

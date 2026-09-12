@@ -1,10 +1,18 @@
-/* Comparative telemetry charts for issue #15: reads the up-to-two
+/* Comparative telemetry charts. #15 built the charts: reads the up-to-two
  * `drivers` selected on the session-selection page (#9) from the URL,
  * fetches each one's lap telemetry from /api/session/<key>/telemetry
  * (#14), and renders speed/throttle/brake/RPM/gear line charts with
- * Chart.js. Charts stay static for now — syncing a time cursor with the
- * 3D replay's playback clock is #16. */
+ * Chart.js. This (#16) adds a per-driver time cursor synced to the 3D
+ * replay's session-wide playback clock (`playback.simTime`, shared via
+ * import from replay-track.js — both script tags load the same module
+ * instance, so they read/write the same object): each chart's x-axis
+ * stays lap-local (0 at that driver's lap start) so the two drivers'
+ * traces overlay for comparison, but `telemetry.lap_start_offset` (#14)
+ * says how far into the *session* that lap started, so simTime can be
+ * converted to "seconds into this lap" and the cursor shown only while
+ * the replay is actually within that lap's window. */
 import { Chart } from "chart.js";
+import { playback } from "./replay-track.js";
 
 const CHART_DEFS = [
   { key: "speed", canvasId: "chart-speed", label: "Velocidad (km/h)" },
@@ -86,7 +94,8 @@ async function main() {
     series.map((s) => `${s.label} (vuelta ${s.telemetry.lap_number ?? "?"})`).join(" vs. ")
   );
 
-  CHART_DEFS.forEach((def, index) => renderChart(def, series, index === 0));
+  const charts = CHART_DEFS.map((def, index) => renderChart(def, series, index === 0));
+  startCursorLoop(charts);
 }
 
 function renderChart(def, series, showLegend) {
@@ -125,7 +134,47 @@ function renderChart(def, series, showLegend) {
         legend: { display: showLegend, labels: { color: TEXT_COLOR, boxWidth: 12 } },
       },
     },
+    plugins: [createSyncCursorPlugin(series)],
   });
+}
+
+// Draws one dashed vertical line per driver at the point in *this* lap
+// (if any) that corresponds to the 3D replay's current session-wide time.
+function createSyncCursorPlugin(series) {
+  return {
+    id: "syncCursor",
+    afterDatasetsDraw(chart) {
+      const { ctx, chartArea, scales } = chart;
+      for (const s of series) {
+        const offset = s.telemetry.lap_start_offset;
+        const points = s.telemetry.points;
+        if (offset == null || !points.length) continue;
+
+        const localT = playback.simTime - offset;
+        if (localT < points[0].t || localT > points[points.length - 1].t) continue;
+
+        const pixelX = scales.x.getPixelForValue(localT);
+        ctx.save();
+        ctx.strokeStyle = s.color;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath();
+        ctx.moveTo(pixelX, chartArea.top);
+        ctx.lineTo(pixelX, chartArea.bottom);
+        ctx.stroke();
+        ctx.restore();
+      }
+    },
+  };
+}
+
+// Redraws (no animation, no data re-parse) at a modest cadence so the sync
+// cursor visibly tracks the replay clock without competing with the WebGL
+// scene's own 60fps render loop for CPU.
+function startCursorLoop(charts) {
+  setInterval(() => {
+    for (const chart of charts) chart.update("none");
+  }, 100);
 }
 
 main();
