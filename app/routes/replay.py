@@ -8,10 +8,11 @@ see app.services.cache.get_or_ingest_session.
 
 from __future__ import annotations
 
-from flask import Blueprint, current_app, jsonify
+from flask import Blueprint, current_app, jsonify, request
 
 from app.services.cache import get_or_ingest_session
 from app.services.ingestion import SessionData, SessionIngestionError
+from app.services.telemetry import TelemetryError, build_telemetry
 from app.services.track import build_car_positions, build_track
 
 replay_bp = Blueprint("replay", __name__)
@@ -39,6 +40,31 @@ def get_cars(session_key: int):
         return data  # error response, see _get_session_or_404
 
     return jsonify(build_car_positions(data.location, data.drivers))
+
+
+@replay_bp.get("/<int:session_key>/telemetry")
+def get_telemetry(session_key: int):
+    """Return one driver's speed/throttle/brake/RPM/gear for a single lap.
+
+    Query params: ``driver_number`` (required), ``lap_number`` (optional
+    — defaults to that driver's first non-out-lap).
+    """
+    data = _get_session_or_404(session_key)
+    if not isinstance(data, SessionData):
+        return data  # error response, see _get_session_or_404
+
+    driver_number = request.args.get("driver_number", type=int)
+    if driver_number is None:
+        return jsonify(error="bad_request", message="driver_number is required"), 400
+
+    lap_number = request.args.get("lap_number", type=int)
+
+    try:
+        telemetry = build_telemetry(data.car_data, data.laps, driver_number, lap_number)
+    except TelemetryError as exc:
+        return jsonify(error="no_telemetry_data", message=str(exc)), 404
+
+    return jsonify(telemetry)
 
 
 def _get_session_or_404(session_key: int):
