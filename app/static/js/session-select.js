@@ -134,7 +134,7 @@
       <p>${meetingLabel} — ${session.session_type}</p>
       <p>${new Date(session.date_start).toLocaleString()}</p>
       <p class="session-key">session_key: ${session.session_key}</p>
-      <p><a class="replay-link" href="/replay?session_key=${session.session_key}">Ver replay 3D &rarr;</a></p>
+      <p><a id="replay-link" class="replay-link" href="/replay?session_key=${session.session_key}">Ver replay 3D &rarr;</a></p>
     `;
     updateUrl(session.session_key);
     loadDrivers(session.session_key);
@@ -220,6 +220,13 @@
       url.searchParams.delete("drivers");
     }
     window.history.replaceState({}, "", url);
+
+    // Keep "Ver replay 3D" carrying the current driver selection too, so
+    // the comparison charts (#15) have someone to compare on arrival.
+    const replayLink = document.getElementById("replay-link");
+    if (replayLink && sessionKey) {
+      replayLink.href = `/replay${url.search}`;
+    }
   }
 
   yearSelect.addEventListener("change", onYearChange);
