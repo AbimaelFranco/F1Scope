@@ -67,6 +67,15 @@ body.replay-body {
   font-size: 0.85rem;
 }
 
+/* A class selector's `display` beats the [hidden] attribute's UA-stylesheet
+   `display: none` on specificity alone — without this, the controls panel
+   stays visibly rendered (and technically "clickable") even while marked
+   hidden, before setupControls() has attached its listeners or set the
+   scrub bar's max. */
+.replay-controls[hidden] {
+  display: none;
+}
+
 .replay-controls button {
   flex: none;
   width: 2rem;
