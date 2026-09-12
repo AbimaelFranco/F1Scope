@@ -49,3 +49,60 @@ body.replay-body {
 .replay-back:hover {
   border-color: #4a5670;
 }
+
+.replay-controls {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(90vw, 640px);
+  padding: 0.6rem 1rem;
+  background: rgba(5, 7, 12, 0.85);
+  border: 1px solid #2a3242;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.replay-controls button {
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid #2a3242;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1;
+}
+
+.replay-controls button:hover {
+  border-color: #18e0ff;
+  color: #18e0ff;
+}
+
+.replay-controls input[type="range"] {
+  flex: 1;
+  accent-color: #18e0ff;
+}
+
+.time-display {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.replay-controls select {
+  flex: none;
+  background: #10151f;
+  color: inherit;
+  border: 1px solid #2a3242;
+  border-radius: 4px;
+  padding: 0.25rem 0.4rem;
+  font: inherit;
+}
