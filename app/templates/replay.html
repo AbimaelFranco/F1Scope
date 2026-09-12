@@ -10,7 +10,9 @@
     {
       "imports": {
         "three": "{{ url_for('static', filename='js/vendor/three.module.js') }}",
-        "three/addons/controls/OrbitControls.js": "{{ url_for('static', filename='js/vendor/OrbitControls.js') }}"
+        "three/addons/controls/OrbitControls.js": "{{ url_for('static', filename='js/vendor/OrbitControls.js') }}",
+        "chart.js": "{{ url_for('static', filename='js/vendor/chart.auto.js') }}",
+        "@kurkle/color": "{{ url_for('static', filename='js/vendor/kurkle-color.esm.js') }}"
       }
     }
   </script>
@@ -34,10 +36,26 @@
     </select>
   </div>
 
+  <aside id="telemetry-panel" class="telemetry-panel" hidden>
+    <h2>Telemetría comparada</h2>
+    <p id="telemetry-status" class="telemetry-status"></p>
+    <div class="telemetry-chart"><canvas id="chart-speed"></canvas></div>
+    <div class="telemetry-chart"><canvas id="chart-throttle"></canvas></div>
+    <div class="telemetry-chart"><canvas id="chart-brake"></canvas></div>
+    <div class="telemetry-chart"><canvas id="chart-rpm"></canvas></div>
+    <div class="telemetry-chart"><canvas id="chart-gear"></canvas></div>
+  </aside>
+
   <script
     type="module"
     id="replay-track-script"
     src="{{ url_for('static', filename='js/replay-track.js') }}"
+    data-session-key="{{ session_key }}"
+  ></script>
+  <script
+    type="module"
+    id="replay-telemetry-script"
+    src="{{ url_for('static', filename='js/replay-telemetry.js') }}"
     data-session-key="{{ session_key }}"
   ></script>
 </body>

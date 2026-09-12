@@ -106,3 +106,38 @@ body.replay-body {
   padding: 0.25rem 0.4rem;
   font: inherit;
 }
+
+.telemetry-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  width: min(90vw, 340px);
+  padding: 4.5rem 1rem 1rem;
+  overflow-y: auto;
+  background: rgba(5, 7, 12, 0.9);
+  border-left: 1px solid #2a3242;
+}
+
+.telemetry-panel h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.telemetry-status {
+  margin: 0 0 1rem;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.telemetry-status.error {
+  color: #ffb3c6;
+  opacity: 1;
+}
+
+.telemetry-chart {
+  position: relative;
+  height: 140px;
+  margin-bottom: 1.25rem;
+}
