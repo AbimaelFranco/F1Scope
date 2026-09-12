@@ -1,17 +1,21 @@
-/* 3D track + car replay. Issue #11 built the static track shape; this
- * (#12) adds the moving cars, fetched from /api/session/<key>/cars
- * (cache-backed — see app/routes/replay.py) and animated along their
- * real downsampled position-over-time data. Playback is a fixed
- * accelerated auto-loop for now — play/pause/speed/scrub controls land
- * in #13. */
+/* 3D track + car replay. #11 built the static track shape, #12 animated
+ * the cars along it (fetched from /api/session/<key>/cars, cache-backed
+ * — see app/routes/replay.py). This (#13) adds play/pause, a speed
+ * control, and a time scrub bar on top of that same animation clock. */
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
-const PLAYBACK_SPEED = 20; // sim-seconds per real second, until #13 adds a control for this
+const DEFAULT_PLAYBACK_SPEED = 20; // sim-seconds per real second
 
 const canvas = document.getElementById("replay-canvas");
 const status = document.getElementById("replay-status");
 const sessionKey = document.getElementById("replay-track-script").dataset.sessionKey;
+
+// Shared playback state: the animate() loop and the control panel both
+// read/write this, so a scrub-bar drag and the auto-advancing clock never
+// fight each other (advancement pauses while playback.scrubbing is true).
+const playback = { simTime: 0, speed: DEFAULT_PLAYBACK_SPEED, playing: true, scrubbing: false };
+let controlEls = null;
 
 function setStatus(text, { isError = false } = {}) {
   status.textContent = text;
@@ -122,15 +126,18 @@ function initScene(points) {
   });
 
   const clock = new THREE.Clock();
-  let simTime = 0;
 
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
 
     if (carState.maxT > 0) {
-      simTime = (simTime + clock.getDelta() * PLAYBACK_SPEED) % carState.maxT;
-      updateCars(simTime);
+      const delta = clock.getDelta();
+      if (playback.playing && !playback.scrubbing) {
+        playback.simTime = (playback.simTime + delta * playback.speed) % carState.maxT;
+      }
+      updateCars(playback.simTime);
+      updateControlsUI();
     }
 
     renderer.render(scene, camera);
@@ -193,6 +200,66 @@ async function loadCars(scene, center, spacing) {
 
   const carCount = carState.cars.length;
   status.textContent += ` · ${carCount} auto${carCount === 1 ? "" : "s"} animándose`;
+
+  setupControls();
+}
+
+function setupControls() {
+  const panel = document.getElementById("replay-controls");
+  controlEls = {
+    panel,
+    playPauseBtn: document.getElementById("play-pause-btn"),
+    scrub: document.getElementById("scrub"),
+    timeDisplay: document.getElementById("time-display"),
+    speedSelect: document.getElementById("speed-select"),
+  };
+
+  controlEls.scrub.max = String(carState.maxT);
+  playback.speed = Number(controlEls.speedSelect.value);
+
+  controlEls.playPauseBtn.addEventListener("click", () => {
+    playback.playing = !playback.playing;
+    controlEls.playPauseBtn.textContent = playback.playing ? "⏸" : "▶";
+  });
+
+  const stopScrubbing = () => {
+    playback.scrubbing = false;
+  };
+  controlEls.scrub.addEventListener("pointerdown", () => {
+    playback.scrubbing = true;
+  });
+  controlEls.scrub.addEventListener("pointerup", stopScrubbing);
+  controlEls.scrub.addEventListener("pointercancel", stopScrubbing);
+  controlEls.scrub.addEventListener("input", () => {
+    playback.simTime = Number(controlEls.scrub.value);
+    updateCars(playback.simTime);
+    controlEls.timeDisplay.textContent = formatTimeRange(playback.simTime, carState.maxT);
+  });
+
+  controlEls.speedSelect.addEventListener("change", () => {
+    playback.speed = Number(controlEls.speedSelect.value);
+  });
+
+  panel.hidden = false;
+  updateControlsUI();
+}
+
+function updateControlsUI() {
+  if (!controlEls || playback.scrubbing) return;
+  controlEls.scrub.value = String(playback.simTime);
+  controlEls.timeDisplay.textContent = formatTimeRange(playback.simTime, carState.maxT);
+}
+
+function formatTime(seconds) {
+  const total = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(total / 3600);
+  const minutes = String(Math.floor((total % 3600) / 60)).padStart(2, "0");
+  const secs = String(total % 60).padStart(2, "0");
+  return hours > 0 ? `${hours}:${minutes}:${secs}` : `${minutes}:${secs}`;
+}
+
+function formatTimeRange(current, total) {
+  return `${formatTime(current)} / ${formatTime(total)}`;
 }
 
 function updateCars(simTime) {
