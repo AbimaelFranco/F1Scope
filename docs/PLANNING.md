@@ -40,8 +40,9 @@ cyberpunk/HUD. Datos desde la API gratuita de [OpenF1](https://openf1.org/).
   reproducción: play/pause, velocidad, scrub por tiempo.
 - HUD con posiciones, gaps/intervalos y vueltas en vivo durante el replay (`position`,
   `intervals`, `laps`).
-- Módulo de telemetría: comparar 2 pilotos (velocidad, throttle, brake, RPM, marcha) en una
-  vuelta, con gráficos sincronizados al replay.
+- Módulo de telemetría: comparar 2 pilotos (velocidad, throttle, brake, RPM, marcha) a lo
+  largo de **toda la carrera** (revisado 2026-09-12, ver sección 10 — originalmente decía
+  "en una vuelta"), con gráficos sincronizados al replay.
 - Estética cyberpunk/HUD (tema neón, tipografía técnica, paneles tipo consola).
 - Empaquetado en Docker (Dockerfile + docker-compose), ejecutable con un comando.
 
@@ -131,3 +132,21 @@ milestones/issues desde aquí. Se resuelve al llegar a ese paso.
 2. ✅ Plan aprobado.
 3. ✅ Diagrama de arquitectura con `/archify` (`docs/architecture/f1scope-architecture.html`).
 4. ✅ Milestones (E1–E9) + 26 issues creados en GitHub: https://github.com/AbimaelFranco/F1Scope/milestones
+
+## 10. Revisiones post-validación
+
+Con E1–E5 mergeados y el servidor corriendo en vivo, el usuario validó la app real y pidió
+tres ajustes no contemplados en el alcance original. Se documentan aquí en vez de reescribir
+la historia de las secciones anteriores, y quedan trackeados en un milestone nuevo
+(`Refinamientos — feedback de validación en vivo`) en vez de reabrir milestones ya cerrados:
+
+- **Telemetría de carrera completa, no solo una vuelta** (issue #47). Revierte la decisión
+  original de la sección 3 ("en una vuelta"). Implica rediseñar el eje de tiempo de los
+  gráficos (probablemente a tiempo global de sesión, lo que además simplifica el cursor
+  sincronizado del issue #16) y aplicar downsampling al volumen resultante.
+- **Checkboxes de visibilidad por piloto en el panel de posiciones** (agregado al issue #17,
+  milestone E6, aún sin iniciar): mostrar/ocultar el auto de cada piloto en el replay 3D,
+  independiente del límite de 2 pilotos para comparar telemetría.
+- **Exagerar el eje de elevación del trazado 3D** (issue #48): el mapeo 1:1 de la elevación
+  real (z de OpenF1) hace que el circuito se vea casi plano; se necesita un multiplicador de
+  exageración vertical calibrable.
