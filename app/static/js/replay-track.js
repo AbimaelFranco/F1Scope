@@ -12,16 +12,36 @@ const DEFAULT_PLAYBACK_SPEED = 20; // sim-seconds per real second
 // only spans ~170, a ~1:50-70 ratio that renders as a visually flat line
 // at 1:1 scale. Exaggerating just the vertical component is standard
 // practice for terrain/track visualization at this kind of scale
-// disparity. Tune per calibration if a circuit still looks too flat/spiky.
-const VERTICAL_EXAGGERATION = 20;
+// disparity.
+//
+// Caveat found via live validation: the per-sample z *noise* between
+// different cars/laps is roughly the same order of magnitude as the
+// elevation range itself — so exaggerating it doesn't just make the
+// track's own elevation profile read better, it also amplifies small,
+// ordinary z discrepancies between a car's raw telemetry and the "one
+// lap" trace the track tube is built from, making cars visibly hover off
+// the track surface at high values. There's no single "correct" value —
+// it's a tradeoff between visible elevation and car/track alignment
+// noise, so this is user-adjustable (see settings-panel) instead of a
+// fixed constant. Default kept conservative for that reason.
+const DEFAULT_VERTICAL_EXAGGERATION = 5;
+const EXAGGERATION_STORAGE_KEY = "f1scope.verticalExaggeration";
+
+let verticalExaggeration = readStoredExaggeration() ?? DEFAULT_VERTICAL_EXAGGERATION;
+
+function readStoredExaggeration() {
+  const raw = localStorage.getItem(EXAGGERATION_STORAGE_KEY);
+  const value = raw != null ? Number(raw) : NaN;
+  return Number.isFinite(value) && value > 0 ? value : null;
+}
 
 // OpenF1's (x, y) is the ground plane and z is elevation; Three.js is
-// Y-up, so z maps to Y — scaled up by VERTICAL_EXAGGERATION so real
+// Y-up, so z maps to Y — scaled up by verticalExaggeration so real
 // elevation changes read visually instead of the track looking flat.
-// Shared by the track (initScene) and the cars (loadCars) so both stay
-// aligned to the same geometry.
+// Shared by the track (initScene/rebuildGeometry) and the cars (loadCars)
+// so both stay aligned to the same geometry.
 function toSceneVector(p) {
-  return new THREE.Vector3(p.x, p.z * VERTICAL_EXAGGERATION, p.y);
+  return new THREE.Vector3(p.x, p.z * verticalExaggeration, p.y);
 }
 
 const canvas = document.getElementById("replay-canvas");
@@ -94,24 +114,7 @@ function initScene(points) {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
 
-  const vectors = points.map(toSceneVector);
-
-  const center = new THREE.Vector3();
-  for (const v of vectors) center.add(v);
-  center.divideScalar(vectors.length);
-  for (const v of vectors) v.sub(center);
-
-  const spacing = averageSpacing(vectors);
-  const tubeRadius = Math.max(spacing * 0.4, 1);
-
-  const curve = new THREE.CatmullRomCurve3(vectors, true);
-  const geometry = new THREE.TubeGeometry(
-    curve,
-    Math.max(200, vectors.length),
-    tubeRadius,
-    8,
-    true
-  );
+  const { center, spacing, geometry } = buildTrackGeometry(points);
   const material = new THREE.MeshStandardMaterial({
     color: 0x18e0ff,
     emissive: 0x083744,
@@ -120,6 +123,11 @@ function initScene(points) {
   });
   const trackMesh = new THREE.Mesh(geometry, material);
   scene.add(trackMesh);
+
+  sceneState.scene = scene;
+  sceneState.trackMesh = trackMesh;
+  sceneState.rawTrackPoints = points;
+  sceneState.center.copy(center);
 
   const box = new THREE.Box3().setFromObject(trackMesh);
   const size = box.getSize(new THREE.Vector3()).length();
@@ -171,6 +179,63 @@ function initScene(points) {
 // every frame to know whether (and how) to advance the cars.
 const carState = { cars: [], maxT: 0 };
 
+// Populated in initScene; rebuildGeometry() (settings panel) reads these
+// to redo the track/car transforms from the original raw data whenever
+// verticalExaggeration changes, instead of needing a full page reload.
+const sceneState = {
+  scene: null,
+  trackMesh: null,
+  rawTrackPoints: null,
+  center: new THREE.Vector3(),
+};
+
+// Shared by initScene (first build) and rebuildGeometry (settings panel):
+// turns raw track points into re-centered scene vectors plus the tube
+// geometry built from them, using the *current* verticalExaggeration.
+function buildTrackGeometry(points) {
+  const vectors = points.map(toSceneVector);
+
+  const center = new THREE.Vector3();
+  for (const v of vectors) center.add(v);
+  center.divideScalar(vectors.length);
+  for (const v of vectors) v.sub(center);
+
+  const spacing = averageSpacing(vectors);
+  const tubeRadius = Math.max(spacing * 0.4, 1);
+  const curve = new THREE.CatmullRomCurve3(vectors, true);
+  const geometry = new THREE.TubeGeometry(
+    curve,
+    Math.max(200, vectors.length),
+    tubeRadius,
+    8,
+    true
+  );
+
+  return { center, spacing, geometry };
+}
+
+// Re-derives the track tube and every car's position series from their
+// original raw API data, using whatever verticalExaggeration is current.
+// Lets the settings panel's slider update the scene live instead of
+// requiring a page reload.
+function rebuildGeometry() {
+  if (!sceneState.trackMesh || !sceneState.rawTrackPoints) return;
+
+  const { center, geometry } = buildTrackGeometry(sceneState.rawTrackPoints);
+  sceneState.trackMesh.geometry.dispose();
+  sceneState.trackMesh.geometry = geometry;
+  sceneState.center.copy(center);
+
+  for (const car of carState.cars) {
+    car.points = car.rawPoints.map((p) => ({
+      t: p.t,
+      pos: toSceneVector(p).sub(center),
+    }));
+    car.cursor = 0;
+  }
+  updateCars(playback.simTime);
+}
+
 // Lets the standings HUD (#17) show/hide a driver's car without knowing
 // anything about carState's internals.
 export function setCarVisible(driverNumber, visible) {
@@ -212,15 +277,23 @@ async function loadCars(scene, center, spacing) {
     const mesh = new THREE.Mesh(geometry, material);
 
     // Same toSceneVector mapping (+ exaggeration) and re-centering used
-    // for the track itself, so cars line up with it.
+    // for the track itself, so cars line up with it. sceneState.center
+    // (not the `center` argument) so this stays correct even if
+    // rebuildGeometry() has already run once by the time cars load.
     const points = driver.points.map((p) => ({
       t: p.t,
-      pos: toSceneVector(p).sub(center),
+      pos: toSceneVector(p).sub(sceneState.center),
     }));
     mesh.position.copy(points[0].pos);
     scene.add(mesh);
 
-    carState.cars.push({ driverNumber: driver.driver_number, points, mesh, cursor: 0 });
+    carState.cars.push({
+      driverNumber: driver.driver_number,
+      points,
+      mesh,
+      cursor: 0,
+      rawPoints: driver.points, // kept for rebuildGeometry() to redo the transform
+    });
     maxT = Math.max(maxT, points[points.length - 1].t);
   }
   carState.maxT = maxT;
@@ -229,6 +302,7 @@ async function loadCars(scene, center, spacing) {
   status.textContent += ` · ${carCount} auto${carCount === 1 ? "" : "s"} animándose`;
 
   setupControls();
+  setupSettingsUI();
 }
 
 function setupControls() {
@@ -269,6 +343,29 @@ function setupControls() {
 
   panel.hidden = false;
   updateControlsUI();
+}
+
+function setupSettingsUI() {
+  const toggleBtn = document.getElementById("settings-toggle-btn");
+  const panel = document.getElementById("settings-panel");
+  const slider = document.getElementById("exaggeration-slider");
+  const valueLabel = document.getElementById("exaggeration-value");
+
+  slider.value = String(verticalExaggeration);
+  valueLabel.textContent = `${verticalExaggeration}x`;
+
+  toggleBtn.addEventListener("click", () => {
+    panel.hidden = !panel.hidden;
+  });
+
+  slider.addEventListener("input", () => {
+    verticalExaggeration = Number(slider.value);
+    valueLabel.textContent = `${verticalExaggeration}x`;
+    localStorage.setItem(EXAGGERATION_STORAGE_KEY, String(verticalExaggeration));
+    rebuildGeometry();
+  });
+
+  toggleBtn.hidden = false;
 }
 
 function updateControlsUI() {
