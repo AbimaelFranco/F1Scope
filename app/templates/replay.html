@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>F1Scope — Replay</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/theme.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/replay.css') }}">
   <script type="importmap">
@@ -19,8 +20,10 @@
 </head>
 <body class="replay-body">
   <div id="replay-status" class="replay-status">Cargando trazado...</div>
-  <a href="/" class="replay-back">&larr; Volver a selección</a>
-  <button id="settings-toggle-btn" type="button" class="settings-toggle" aria-label="Configuración" hidden>&#9881;</button>
+  <div class="replay-topbar">
+    <button id="settings-toggle-btn" type="button" class="settings-toggle" aria-label="Configuración" hidden>&#9881;</button>
+    <a href="/" class="replay-back">&larr; Volver a selección</a>
+  </div>
   <canvas id="replay-canvas"></canvas>
 
   <div id="settings-panel" class="settings-panel" hidden>
