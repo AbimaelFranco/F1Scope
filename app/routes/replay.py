@@ -82,7 +82,9 @@ def get_standings(session_key: int):
     if session_origin is None:
         return jsonify(error="no_standings_data", message="No location data for this session"), 404
 
-    return jsonify(build_standings(data.position, data.intervals, data.drivers, session_origin))
+    return jsonify(
+        build_standings(data.position, data.intervals, data.laps, data.drivers, session_origin)
+    )
 
 
 def _get_session_or_404(session_key: int):
