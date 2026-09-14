@@ -1,0 +1,273 @@
+/* F1Scope design system — E7 "Identidad visual cyberpunk" (#20).
+ *
+ * This file is the *system*: design tokens (palette, type, spacing, glow
+ * effects) as CSS custom properties, plus a small set of reusable base
+ * components (.hud-panel, .hud-heading, .hud-badge, .hud-btn, .hud-divider)
+ * meant to replace the ad-hoc inline values scattered across
+ * session-select.css/replay.css (e.g. `border: 1px solid #2a3242`,
+ * `background: rgba(5, 7, 12, 0.9)` repeated verbatim in a dozen places).
+ *
+ * Applying these tokens/components to the actual views (session selection,
+ * 3D replay HUD panels, telemetry panel) is #21 — kept out of this file on
+ * purpose so the two issues stay independently reviewable. The one
+ * exception is base.css's document-level body/typography and the error
+ * pages, which aren't part of #21's named scope and double as a working
+ * end-to-end proof that the tokens/fonts load correctly.
+ *
+ * Load this file BEFORE any page-specific stylesheet so `var(--…)` resolves
+ * there too.
+ */
+
+/* -- Fonts --------------------------------------------------------------
+ * Self-hosted (see app/static/fonts/README.md) rather than pulled from
+ * Google Fonts' CDN, same reasoning as the vendored JS: no third-party
+ * request at runtime, works fully offline inside the Docker image.
+ * Orbitron is a variable font (weight axis 400-900) in one file; Share
+ * Tech Mono only ships a 400 weight. */
+@font-face {
+  font-family: "Orbitron";
+  src: url("../fonts/orbitron-variable.woff2") format("woff2-variations"),
+       url("../fonts/orbitron-variable.woff2") format("woff2");
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Share Tech Mono";
+  src: url("../fonts/share-tech-mono-regular.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* -- Typography -- */
+  --font-display: "Orbitron", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Share Tech Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --tracking-wide: 0.08em;
+
+  /* -- Palette: backgrounds -- */
+  --bg-void: #05070c;             /* page background */
+  --bg-panel: #0a0e16;            /* opaque fallback for panels */
+  --bg-panel-a85: rgba(5, 7, 12, 0.85);  /* translucent HUD panel over the 3D scene */
+  --bg-panel-a90: rgba(5, 7, 12, 0.9);
+  --bg-raised: #10151f;           /* inputs, selects */
+
+  /* -- Palette: borders/text -- */
+  --border-color: #2a3242;
+  --text-primary: #e6f1ff;
+  --text-muted: rgba(230, 241, 255, 0.65);
+  --text-dim: rgba(230, 241, 255, 0.5);
+
+  /* -- Palette: neon accents --
+   * Cyan is the established primary brand accent (already used throughout
+   * replay.css/session-select.css). Magenta/purple/amber/green extend it
+   * for #21's status/alert use (selection highlight, warnings, best-lap
+   * distinction, positive/connected states). */
+  --accent-cyan: #18e0ff;
+  --accent-cyan-dim: #0d7f94;
+  --accent-magenta: #ff2e88;
+  --accent-purple: #b98bff;
+  --accent-amber: #ffcf4d;
+  --accent-green: #39ff9d;
+  --accent-red: #ff4d6d;
+
+  /* -- Feedback colors (errors/warnings already used ad hoc in replay.css/
+   * standings — formalized here so #21 can reuse them consistently) -- */
+  --color-error-text: #ffb3c6;
+  --color-error-border: #b33355;
+
+  /* -- Glow: the "neon" in the palette. Used sparingly (headings, active/
+   * selected states, hover) — everywhere at once reads as noise, not HUD. -- */
+  --glow-cyan: 0 0 6px rgba(24, 224, 255, 0.55), 0 0 16px rgba(24, 224, 255, 0.25);
+  --glow-magenta: 0 0 6px rgba(255, 46, 136, 0.55), 0 0 16px rgba(255, 46, 136, 0.25);
+
+  /* -- Shape -- */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-pill: 999px;
+}
+
+/* -- Base document -------------------------------------------------------
+ * Shared by every page (including the error pages), unlike the
+ * view-specific panels #21 will restyle. */
+body {
+  background: var(--bg-void);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+/* Faint static scanline texture — a cheap (pure CSS, no image/JS), subtle
+ * nod to the "cyberpunk/HUD" brief. Low opacity and pointer-events: none
+ * so it never interferes with content or input. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    rgba(24, 224, 255, 0.05) 0,
+    rgba(24, 224, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  opacity: 0.4;
+}
+
+/* Anything meant to render above the scanline overlay (every page's real
+ * content) needs a stacking context above it, since the overlay is
+ * `position: fixed` at z-index: 0 covering the whole viewport. */
+body > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* -- Component: hud-panel -------------------------------------------------
+ * The translucent console-panel look already duplicated verbatim across
+ * replay.css (.replay-status, .replay-controls, .telemetry-panel,
+ * .standings-panel, .settings-panel all repeat the same background/
+ * border/radius). #21 should replace those with this class instead of
+ * keeping the duplication. */
+.hud-panel {
+  background: var(--bg-panel-a90);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+}
+
+/* Optional modifier: corner brackets, a common sci-fi/HUD framing device.
+ * Layered on top of .hud-panel rather than baked in, since not every
+ * panel wants the extra visual weight (e.g. small inline badges). */
+.hud-panel--bracketed {
+  position: relative;
+}
+
+.hud-panel--bracketed::before,
+.hud-panel--bracketed::after {
+  content: "";
+  position: absolute;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 2px solid var(--accent-cyan);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.hud-panel--bracketed::before {
+  top: -1px;
+  left: -1px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.hud-panel--bracketed::after {
+  bottom: -1px;
+  right: -1px;
+  border-left: none;
+  border-top: none;
+}
+
+/* -- Component: hud-heading -----------------------------------------------
+ * Orbitron, uppercase, tracked-out — for panel titles (h2 in the existing
+ * standings/telemetry/settings panels) rather than the current plain
+ * inherited heading style. */
+.hud-heading {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-primary);
+}
+
+.hud-heading--accent {
+  color: var(--accent-cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+/* -- Component: hud-divider ------------------------------------------------
+ * A neon-fade separator line, for splitting sections inside a dense HUD
+ * panel without a plain flat <hr>. */
+.hud-divider {
+  height: 1px;
+  margin: 0.75rem 0;
+  border: none;
+  background: linear-gradient(to right, var(--accent-cyan), transparent);
+  opacity: 0.5;
+}
+
+/* -- Component: hud-badge --------------------------------------------------
+ * Small status pill. Variants cover the accent palette; default is the
+ * neutral/muted reading (e.g. "no data yet") vs. the accent readings
+ * (live/positive/warning/danger). */
+.hud-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid currentColor;
+  font-family: var(--font-display);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+}
+
+.hud-badge--accent {
+  color: var(--accent-cyan);
+  text-shadow: var(--glow-cyan);
+}
+
+.hud-badge--success {
+  color: var(--accent-green);
+}
+
+.hud-badge--warning {
+  color: var(--accent-amber);
+}
+
+.hud-badge--danger {
+  color: var(--accent-red);
+}
+
+/* -- Component: hud-btn -----------------------------------------------------
+ * Button base — replaces the ad-hoc `border: 1px solid #2a3242; ...
+ * :hover { border-color: #18e0ff; color: #18e0ff; }` pattern repeated for
+ * .replay-controls button and .settings-toggle in replay.css. */
+.hud-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.hud-btn:hover,
+.hud-btn:focus-visible {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: var(--glow-cyan);
+}
+
+.hud-btn:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.hud-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  box-shadow: none;
+}
