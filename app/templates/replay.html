@@ -20,7 +20,23 @@
 <body class="replay-body">
   <div id="replay-status" class="replay-status">Cargando trazado...</div>
   <a href="/" class="replay-back">&larr; Volver a selección</a>
+  <button id="settings-toggle-btn" type="button" class="settings-toggle" aria-label="Configuración" hidden>&#9881;</button>
   <canvas id="replay-canvas"></canvas>
+
+  <div id="settings-panel" class="settings-panel" hidden>
+    <h2>Configuración</h2>
+    <label class="settings-field">
+      Exageración de elevación
+      <div class="settings-row">
+        <input id="exaggeration-slider" type="range" min="1" max="30" step="1" value="5">
+        <span id="exaggeration-value" class="settings-value">5x</span>
+      </div>
+      <p class="settings-hint">
+        Valores altos hacen el desnivel más visible pero pueden desalinear
+        los autos de la pista (ruido de los datos de elevación).
+      </p>
+    </label>
+  </div>
 
   <div id="replay-controls" class="replay-controls" hidden>
     <button id="play-pause-btn" type="button" aria-label="Pausar">⏸</button>
