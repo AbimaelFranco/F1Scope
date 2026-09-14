@@ -36,6 +36,23 @@
     </select>
   </div>
 
+  <aside id="standings-panel" class="standings-panel" hidden>
+    <h2>Posiciones</h2>
+    <p id="standings-status" class="standings-status"></p>
+    <table class="standings-table">
+      <thead>
+        <tr>
+          <th aria-label="Visible en 3D"></th>
+          <th>Pos</th>
+          <th>Piloto</th>
+          <th>Gap líder</th>
+          <th>Intervalo</th>
+        </tr>
+      </thead>
+      <tbody id="standings-body"></tbody>
+    </table>
+  </aside>
+
   <aside id="telemetry-panel" class="telemetry-panel" hidden>
     <h2>Telemetría comparada</h2>
     <p id="telemetry-status" class="telemetry-status"></p>
@@ -56,6 +73,12 @@
     type="module"
     id="replay-telemetry-script"
     src="{{ url_for('static', filename='js/replay-telemetry.js') }}"
+    data-session-key="{{ session_key }}"
+  ></script>
+  <script
+    type="module"
+    id="replay-standings-script"
+    src="{{ url_for('static', filename='js/replay-standings.js') }}"
     data-session-key="{{ session_key }}"
   ></script>
 </body>

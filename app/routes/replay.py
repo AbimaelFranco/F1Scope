@@ -12,6 +12,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from app.services.cache import get_or_ingest_session
 from app.services.ingestion import SessionData, SessionIngestionError
+from app.services.standings import build_standings
 from app.services.telemetry import TelemetryError, build_telemetry
 from app.services.track import build_car_positions, build_track, session_time_origin
 
@@ -68,6 +69,20 @@ def get_telemetry(session_key: int):
         return jsonify(error="no_telemetry_data", message=str(exc)), 404
 
     return jsonify(telemetry)
+
+
+@replay_bp.get("/<int:session_key>/standings")
+def get_standings(session_key: int):
+    """Return per-driver position/gap/interval timeseries for the HUD table."""
+    data = _get_session_or_404(session_key)
+    if not isinstance(data, SessionData):
+        return data  # error response, see _get_session_or_404
+
+    session_origin = session_time_origin(data.location)
+    if session_origin is None:
+        return jsonify(error="no_standings_data", message="No location data for this session"), 404
+
+    return jsonify(build_standings(data.position, data.intervals, data.drivers, session_origin))
 
 
 def _get_session_or_404(session_key: int):

@@ -67,6 +67,15 @@ body.replay-body {
   font-size: 0.85rem;
 }
 
+/* A class selector's `display` beats the [hidden] attribute's UA-stylesheet
+   `display: none` on specificity alone — without this, the controls panel
+   stays visibly rendered (and technically "clickable") even while marked
+   hidden, before setupControls() has attached its listeners or set the
+   scrub bar's max. */
+.replay-controls[hidden] {
+  display: none;
+}
+
 .replay-controls button {
   flex: none;
   width: 2rem;
@@ -140,4 +149,73 @@ body.replay-body {
   position: relative;
   height: 140px;
   margin-bottom: 1.25rem;
+}
+
+.standings-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 10;
+  width: min(85vw, 280px);
+  padding: 4.5rem 1rem 1rem;
+  overflow-y: auto;
+  background: rgba(5, 7, 12, 0.9);
+  border-right: 1px solid #2a3242;
+}
+
+.standings-panel h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+}
+
+.standings-status {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.standings-status.error {
+  color: #ffb3c6;
+  opacity: 1;
+}
+
+.standings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.standings-table th {
+  text-align: left;
+  font-weight: 400;
+  opacity: 0.6;
+  padding: 0.2rem 0.3rem;
+  border-bottom: 1px solid #2a3242;
+}
+
+.standings-table td {
+  padding: 0.3rem;
+  border-bottom: 1px solid #161c28;
+  white-space: nowrap;
+}
+
+.standings-position {
+  font-weight: 600;
+  text-align: center;
+}
+
+.standings-gap,
+.standings-interval {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+.standings-table .driver-swatch {
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+  vertical-align: middle;
 }

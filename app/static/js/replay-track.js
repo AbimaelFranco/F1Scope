@@ -156,6 +156,13 @@ function initScene(points) {
 // every frame to know whether (and how) to advance the cars.
 const carState = { cars: [], maxT: 0 };
 
+// Lets the standings HUD (#17) show/hide a driver's car without knowing
+// anything about carState's internals.
+export function setCarVisible(driverNumber, visible) {
+  const car = carState.cars.find((c) => String(c.driverNumber) === String(driverNumber));
+  if (car) car.mesh.visible = visible;
+}
+
 async function loadCars(scene, center, spacing) {
   let payload;
   try {
