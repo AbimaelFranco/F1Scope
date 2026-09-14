@@ -1,9 +1,12 @@
-/* Live standings HUD for issue #17: fetches per-driver position/gap/
- * interval timeseries from /api/session/<key>/standings (cache-backed —
- * see app/routes/replay.py) and renders a table that updates as the 3D
- * replay's playback clock advances. Each row has a checkbox to show/hide
- * that driver's car in the 3D scene (setCarVisible, from replay-track.js
- * — same shared-module-instance trick used for `playback`). */
+/* Live standings HUD. #17 built the position/gap/interval table (fetches
+ * from /api/session/<key>/standings, cache-backed — see
+ * app/routes/replay.py) that updates as the 3D replay's playback clock
+ * advances, with a per-row checkbox to show/hide that driver's car in
+ * the 3D scene (setCarVisible, from replay-track.js — same
+ * shared-module-instance trick used for `playback`). This (#18) adds
+ * "last lap" / "best lap" columns to the same table rather than a
+ * second panel — see app/services/standings.py's module docstring for
+ * why. */
 import { playback, setCarVisible } from "./replay-track.js";
 
 const scriptEl = document.getElementById("replay-standings-script");
@@ -54,6 +57,29 @@ function formatGap(value) {
   return String(value); // OpenF1 sometimes reports lapped cars as a string
 }
 
+function formatLapTime(seconds) {
+  if (seconds == null) return "–";
+  const minutes = Math.floor(seconds / 60);
+  const rest = (seconds % 60).toFixed(3).padStart(6, "0");
+  return `${minutes}:${rest}`;
+}
+
+// Unlike latestValueAtOrBefore (one current value), this returns every lap
+// *completed* at or before t — "best lap so far" needs the whole prefix,
+// not just the latest entry. cursorState.laps tracks how many are done.
+function lapsCompletedAtOrBefore(lapsSeries, cursorState, t) {
+  if (!lapsSeries.length) return [];
+
+  if (cursorState.laps > 0 && t < lapsSeries[cursorState.laps - 1].t) {
+    cursorState.laps = 0; // time moved backwards (scrub or loop)
+  }
+  while (cursorState.laps < lapsSeries.length && lapsSeries[cursorState.laps].t <= t) {
+    cursorState.laps += 1;
+  }
+
+  return lapsSeries.slice(0, cursorState.laps);
+}
+
 async function main() {
   panel.hidden = false;
   setStatus("Cargando posiciones...");
@@ -75,7 +101,7 @@ async function main() {
 
   setStatus(`${drivers.length} pilotos`);
   for (const driver of drivers) {
-    cursors.set(driver.driver_number, { position: 0, gap_to_leader: 0, interval: 0 });
+    cursors.set(driver.driver_number, { position: 0, gap_to_leader: 0, interval: 0, laps: 0 });
     tbody.appendChild(renderRow(driver));
   }
 
@@ -112,7 +138,21 @@ function renderRow(driver) {
   const intervalCell = document.createElement("td");
   intervalCell.className = "standings-interval";
 
-  row.append(visibilityCell, positionCell, driverCell, gapCell, intervalCell);
+  const lastLapCell = document.createElement("td");
+  lastLapCell.className = "standings-last-lap";
+
+  const bestLapCell = document.createElement("td");
+  bestLapCell.className = "standings-best-lap";
+
+  row.append(
+    visibilityCell,
+    positionCell,
+    driverCell,
+    gapCell,
+    intervalCell,
+    lastLapCell,
+    bestLapCell
+  );
   return row;
 }
 
@@ -121,11 +161,19 @@ function updateTable(drivers) {
 
   const rows = drivers.map((driver) => {
     const cursorState = cursors.get(driver.driver_number);
+    const completedLaps = lapsCompletedAtOrBefore(driver.laps, cursorState, simTime);
+    const lastLap = completedLaps.length ? completedLaps[completedLaps.length - 1] : null;
+    const bestLap = completedLaps.reduce(
+      (best, lap) => (best == null || lap.lap_duration < best ? lap.lap_duration : best),
+      null
+    );
     return {
       driver,
       position: latestValueAtOrBefore(driver.position, "position", cursorState, simTime),
       gap: latestValueAtOrBefore(driver.gap_to_leader, "gap_to_leader", cursorState, simTime),
       interval: latestValueAtOrBefore(driver.interval, "interval", cursorState, simTime),
+      lastLap: lastLap ? lastLap.lap_duration : null,
+      bestLap,
     };
   });
 
@@ -133,12 +181,14 @@ function updateTable(drivers) {
   // record) sort to the bottom rather than before P1.
   rows.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity));
 
-  for (const { driver, position, gap, interval } of rows) {
+  for (const { driver, position, gap, interval, lastLap, bestLap } of rows) {
     const row = document.getElementById(`standings-row-${driver.driver_number}`);
     tbody.appendChild(row); // re-append in sorted order; no-op if already there
     row.querySelector(".standings-position").textContent = position ?? "–";
     row.querySelector(".standings-gap").textContent = position === 1 ? "–" : formatGap(gap);
     row.querySelector(".standings-interval").textContent = position === 1 ? "–" : formatGap(interval);
+    row.querySelector(".standings-last-lap").textContent = formatLapTime(lastLap);
+    row.querySelector(".standings-best-lap").textContent = formatLapTime(bestLap);
   }
 }
 

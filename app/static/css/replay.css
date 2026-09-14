@@ -157,7 +157,7 @@ body.replay-body {
   left: 0;
   bottom: 0;
   z-index: 10;
-  width: min(85vw, 280px);
+  width: min(90vw, 380px); /* widened for #18's last-lap/best-lap columns */
   padding: 4.5rem 1rem 1rem;
   overflow-y: auto;
   background: rgba(5, 7, 12, 0.9);
@@ -206,9 +206,17 @@ body.replay-body {
 }
 
 .standings-gap,
-.standings-interval {
+.standings-interval,
+.standings-last-lap,
+.standings-best-lap {
   font-variant-numeric: tabular-nums;
   opacity: 0.85;
+}
+
+.standings-best-lap {
+  /* This driver's own fastest lap so far (not necessarily the session's
+     overall fastest) — a distinct color just to set the column apart. */
+  color: #b98bff;
 }
 
 .standings-table .driver-swatch {
