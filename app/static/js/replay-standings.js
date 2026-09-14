@@ -20,6 +20,15 @@ const tbody = document.getElementById("standings-body");
 // every tick. Reset to 0 whenever simTime moves backwards (scrub/loop).
 const cursors = new Map(); // driver_number -> { position: 0, gap_to_leader: 0, interval: 0 }
 
+// Previous tick's sorted driver_number order — only touch the DOM
+// (tbody.appendChild, which *moves* a node even when it's a no-op
+// positionally) when this actually changes. Position updates ~666 times
+// across a whole race, so almost every 200ms tick doesn't need to reorder
+// anything; doing it unconditionally was moving all 20 rows 5x/second,
+// and appendChild-ing a row mid-click can cancel that click's own
+// checkbox toggle — reproduced: ~23% of clicks silently failed to toggle.
+let lastOrder = null;
+
 function setStatus(text, { isError = false } = {}) {
   status.textContent = text;
   status.classList.toggle("error", isError);
@@ -181,9 +190,16 @@ function updateTable(drivers) {
   // record) sort to the bottom rather than before P1.
   rows.sort((a, b) => (a.position ?? Infinity) - (b.position ?? Infinity));
 
+  const newOrder = rows.map(({ driver }) => driver.driver_number);
+  const orderChanged =
+    !lastOrder ||
+    newOrder.length !== lastOrder.length ||
+    newOrder.some((number, i) => number !== lastOrder[i]);
+  if (orderChanged) lastOrder = newOrder;
+
   for (const { driver, position, gap, interval, lastLap, bestLap } of rows) {
     const row = document.getElementById(`standings-row-${driver.driver_number}`);
-    tbody.appendChild(row); // re-append in sorted order; no-op if already there
+    if (orderChanged) tbody.appendChild(row); // moves the node — only when order truly changed
     row.querySelector(".standings-position").textContent = position ?? "–";
     row.querySelector(".standings-gap").textContent = position === 1 ? "–" : formatGap(gap);
     row.querySelector(".standings-interval").textContent = position === 1 ? "–" : formatGap(interval);
