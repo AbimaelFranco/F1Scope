@@ -10,7 +10,7 @@
 </head>
 <body>
   <main class="session-select">
-    <h1>F1Scope</h1>
+    <h1 class="hud-heading hud-heading--accent">F1Scope</h1>
     <p class="tagline">Selecciona una carrera para analizar.</p>
 
     <div class="selectors">
@@ -36,12 +36,12 @@
       </label>
     </div>
 
-    <section id="session-summary" class="session-summary" hidden></section>
+    <section id="session-summary" class="session-summary hud-panel hud-panel--bracketed" hidden></section>
 
     <section id="driver-picker" class="driver-picker" hidden>
-      <h2>Comparar pilotos</h2>
+      <h2 class="hud-heading hud-heading--accent">Comparar pilotos</h2>
       <p id="driver-picker-hint" class="hint">Selecciona hasta 2 pilotos para comparar.</p>
-      <div id="driver-list" class="driver-list"></div>
+      <div id="driver-list" class="driver-list hud-panel"></div>
     </section>
   </main>
 

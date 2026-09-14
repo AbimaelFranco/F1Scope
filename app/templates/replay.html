@@ -19,15 +19,15 @@
   </script>
 </head>
 <body class="replay-body">
-  <div id="replay-status" class="replay-status">Cargando trazado...</div>
+  <div id="replay-status" class="replay-status hud-panel hud-panel--bracketed">Cargando trazado...</div>
   <div class="replay-topbar">
-    <button id="settings-toggle-btn" type="button" class="settings-toggle" aria-label="Configuración" hidden>&#9881;</button>
-    <a href="/" class="replay-back">&larr; Volver a selección</a>
+    <button id="settings-toggle-btn" type="button" class="settings-toggle hud-btn" aria-label="Configuración" hidden>&#9881;</button>
+    <a href="/" class="replay-back hud-btn">&larr; Volver a selección</a>
   </div>
   <canvas id="replay-canvas"></canvas>
 
-  <div id="settings-panel" class="settings-panel" hidden>
-    <h2>Configuración</h2>
+  <div id="settings-panel" class="settings-panel hud-panel hud-panel--bracketed" hidden>
+    <h2 class="hud-heading hud-heading--accent">Configuración</h2>
     <label class="settings-field">
       Exageración de elevación
       <div class="settings-row">
@@ -41,8 +41,8 @@
     </label>
   </div>
 
-  <div id="replay-controls" class="replay-controls" hidden>
-    <button id="play-pause-btn" type="button" aria-label="Pausar">⏸</button>
+  <div id="replay-controls" class="replay-controls hud-panel" hidden>
+    <button id="play-pause-btn" type="button" class="hud-btn" aria-label="Pausar">⏸</button>
     <input id="scrub" type="range" min="0" max="0" step="0.1" value="0" aria-label="Progreso de la sesión">
     <span id="time-display" class="time-display">00:00 / 00:00</span>
     <select id="speed-select" aria-label="Velocidad de reproducción">
@@ -55,8 +55,8 @@
     </select>
   </div>
 
-  <aside id="standings-panel" class="standings-panel" hidden>
-    <h2>Posiciones</h2>
+  <aside id="standings-panel" class="standings-panel hud-panel" hidden>
+    <h2 class="hud-heading hud-heading--accent">Posiciones</h2>
     <p id="standings-status" class="standings-status"></p>
     <table class="standings-table">
       <thead>
@@ -74,8 +74,8 @@
     </table>
   </aside>
 
-  <aside id="telemetry-panel" class="telemetry-panel" hidden>
-    <h2>Telemetría comparada</h2>
+  <aside id="telemetry-panel" class="telemetry-panel hud-panel" hidden>
+    <h2 class="hud-heading hud-heading--accent">Telemetría comparada</h2>
     <p id="telemetry-status" class="telemetry-status"></p>
     <div class="telemetry-chart"><canvas id="chart-speed"></canvas></div>
     <div class="telemetry-chart"><canvas id="chart-throttle"></canvas></div>

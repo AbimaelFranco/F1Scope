@@ -1,5 +1,9 @@
-/* Layout for the session-selection view. Restyled with the cyberpunk/HUD
-   theme in milestone E7 — this is just enough to make the flow usable. */
+/* Layout for the session-selection view.
+
+   #21: panel background/border/radius comes from theme.css's .hud-panel
+   (see index.html for the added classes) instead of being duplicated here
+   — this file keeps only what's specific to this view: layout, spacing,
+   the select/checkbox inputs. */
 
 .session-select {
   width: min(90vw, 480px);
@@ -24,26 +28,35 @@
   flex-direction: column;
   gap: 0.35rem;
   font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  opacity: 0.7;
 }
 
 .selectors select {
   padding: 0.5rem;
-  background: #10151f;
-  color: inherit;
-  border: 1px solid #2a3242;
-  border-radius: 4px;
+  background: var(--bg-raised);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
   font: inherit;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .selectors select:disabled {
   opacity: 0.5;
 }
 
+.selectors select:focus-visible {
+  border-color: var(--accent-cyan);
+  outline: none;
+  box-shadow: var(--glow-cyan);
+}
+
 .session-summary {
   margin-top: 2rem;
   padding: 1rem;
-  border: 1px solid #2a3242;
-  border-radius: 6px;
   text-align: left;
 }
 
@@ -57,7 +70,13 @@
 }
 
 .replay-link {
-  color: #18e0ff;
+  display: inline-flex;
+  margin-top: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  text-shadow: var(--glow-cyan);
+  text-decoration: none;
 }
 
 .driver-picker {
@@ -83,8 +102,6 @@
   max-height: 260px;
   overflow-y: auto;
   padding: 0.5rem;
-  border: 1px solid #2a3242;
-  border-radius: 6px;
 }
 
 .driver-option {
