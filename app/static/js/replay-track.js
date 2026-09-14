@@ -7,6 +7,23 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 
 const DEFAULT_PLAYBACK_SPEED = 20; // sim-seconds per real second
 
+// OpenF1's elevation (z) is tiny next to the track's horizontal extent —
+// on a real circuit like Bahrain, x/y span ~8,000-12,000 units while z
+// only spans ~170, a ~1:50-70 ratio that renders as a visually flat line
+// at 1:1 scale. Exaggerating just the vertical component is standard
+// practice for terrain/track visualization at this kind of scale
+// disparity. Tune per calibration if a circuit still looks too flat/spiky.
+const VERTICAL_EXAGGERATION = 20;
+
+// OpenF1's (x, y) is the ground plane and z is elevation; Three.js is
+// Y-up, so z maps to Y — scaled up by VERTICAL_EXAGGERATION so real
+// elevation changes read visually instead of the track looking flat.
+// Shared by the track (initScene) and the cars (loadCars) so both stay
+// aligned to the same geometry.
+function toSceneVector(p) {
+  return new THREE.Vector3(p.x, p.z * VERTICAL_EXAGGERATION, p.y);
+}
+
 const canvas = document.getElementById("replay-canvas");
 const status = document.getElementById("replay-status");
 const sessionKey = document.getElementById("replay-track-script").dataset.sessionKey;
@@ -77,9 +94,7 @@ function initScene(points) {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
 
-  // OpenF1's (x, y) is the ground plane and z is elevation (small
-  // variance vs. x/y in real data); Three.js is Y-up, so z maps to Y.
-  const vectors = points.map((p) => new THREE.Vector3(p.x, p.z, p.y));
+  const vectors = points.map(toSceneVector);
 
   const center = new THREE.Vector3();
   for (const v of vectors) center.add(v);
@@ -196,11 +211,11 @@ async function loadCars(scene, center, spacing) {
     });
     const mesh = new THREE.Mesh(geometry, material);
 
-    // Same OpenF1 (x,y,z) -> Three.js (x,z,y) mapping and re-centering
-    // used for the track itself, so cars line up with it.
+    // Same toSceneVector mapping (+ exaggeration) and re-centering used
+    // for the track itself, so cars line up with it.
     const points = driver.points.map((p) => ({
       t: p.t,
-      pos: new THREE.Vector3(p.x, p.z, p.y).sub(center),
+      pos: toSceneVector(p).sub(center),
     }));
     mesh.position.copy(points[0].pos);
     scene.add(mesh);
