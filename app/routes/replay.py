@@ -45,10 +45,10 @@ def get_cars(session_key: int):
 
 @replay_bp.get("/<int:session_key>/telemetry")
 def get_telemetry(session_key: int):
-    """Return one driver's speed/throttle/brake/RPM/gear for a single lap.
+    """Return one driver's speed/throttle/brake/RPM/gear for the session.
 
     Query params: ``driver_number`` (required), ``lap_number`` (optional
-    — defaults to that driver's first non-out-lap).
+    — zooms to just that lap instead of the whole session).
     """
     data = _get_session_or_404(session_key)
     if not isinstance(data, SessionData):

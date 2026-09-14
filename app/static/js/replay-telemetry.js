@@ -1,16 +1,18 @@
 /* Comparative telemetry charts. #15 built the charts: reads the up-to-two
  * `drivers` selected on the session-selection page (#9) from the URL,
- * fetches each one's lap telemetry from /api/session/<key>/telemetry
- * (#14), and renders speed/throttle/brake/RPM/gear line charts with
- * Chart.js. This (#16) adds a per-driver time cursor synced to the 3D
- * replay's session-wide playback clock (`playback.simTime`, shared via
- * import from replay-track.js — both script tags load the same module
- * instance, so they read/write the same object): each chart's x-axis
- * stays lap-local (0 at that driver's lap start) so the two drivers'
- * traces overlay for comparison, but `telemetry.lap_start_offset` (#14)
- * says how far into the *session* that lap started, so simTime can be
- * converted to "seconds into this lap" and the cursor shown only while
- * the replay is actually within that lap's window. */
+ * fetches each one's telemetry from /api/session/<key>/telemetry (#14),
+ * and renders speed/throttle/brake/RPM/gear line charts with Chart.js.
+ * #16 added a time cursor synced to the 3D replay's session-wide
+ * playback clock (`playback.simTime`, shared via import from
+ * replay-track.js — both script tags load the same module instance, so
+ * they read/write the same object).
+ *
+ * #47 (live-validation feedback) switched the default from one lap to
+ * the whole session, with `t` already relative to the same session-wide
+ * origin `playback.simTime` uses — which simplified the cursor down to a
+ * single shared vertical line (no more per-driver lap_start_offset
+ * conversion, since both drivers' charts now live in the same time
+ * domain as the replay clock). */
 import { Chart } from "chart.js";
 import { playback } from "./replay-track.js";
 
@@ -90,13 +92,41 @@ async function main() {
     };
   });
 
-  setStatus(
-    series.map((s) => `${s.label} (vuelta ${s.telemetry.lap_number ?? "?"})`).join(" vs. ")
-  );
+  const anyLapScoped = series.some((s) => s.telemetry.lap_number != null);
+  const names = series
+    .map((s) =>
+      s.telemetry.lap_number != null ? `${s.label} (vuelta ${s.telemetry.lap_number})` : s.label
+    )
+    .join(" vs. ");
+  setStatus(anyLapScoped ? names : `${names} — carrera completa`);
 
   const charts = CHART_DEFS.map((def, index) => renderChart(def, series, index === 0));
   startCursorLoop(charts);
 }
+
+// One shared vertical line at the 3D replay's current session-wide time.
+// Both drivers' points already live in that same time domain (#47), so —
+// unlike before #47, when each lap had its own local origin — this no
+// longer needs to know anything about which series it's drawing over.
+const SYNC_CURSOR_PLUGIN = {
+  id: "syncCursor",
+  afterDatasetsDraw(chart) {
+    const { ctx, chartArea, scales } = chart;
+    const t = playback.simTime;
+    if (t < scales.x.min || t > scales.x.max) return;
+
+    const pixelX = scales.x.getPixelForValue(t);
+    ctx.save();
+    ctx.strokeStyle = "#ffb020";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.moveTo(pixelX, chartArea.top);
+    ctx.lineTo(pixelX, chartArea.bottom);
+    ctx.stroke();
+    ctx.restore();
+  },
+};
 
 function renderChart(def, series, showLegend) {
   const canvas = document.getElementById(def.canvasId);
@@ -134,38 +164,8 @@ function renderChart(def, series, showLegend) {
         legend: { display: showLegend, labels: { color: TEXT_COLOR, boxWidth: 12 } },
       },
     },
-    plugins: [createSyncCursorPlugin(series)],
+    plugins: [SYNC_CURSOR_PLUGIN],
   });
-}
-
-// Draws one dashed vertical line per driver at the point in *this* lap
-// (if any) that corresponds to the 3D replay's current session-wide time.
-function createSyncCursorPlugin(series) {
-  return {
-    id: "syncCursor",
-    afterDatasetsDraw(chart) {
-      const { ctx, chartArea, scales } = chart;
-      for (const s of series) {
-        const offset = s.telemetry.lap_start_offset;
-        const points = s.telemetry.points;
-        if (offset == null || !points.length) continue;
-
-        const localT = playback.simTime - offset;
-        if (localT < points[0].t || localT > points[points.length - 1].t) continue;
-
-        const pixelX = scales.x.getPixelForValue(localT);
-        ctx.save();
-        ctx.strokeStyle = s.color;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([4, 3]);
-        ctx.beginPath();
-        ctx.moveTo(pixelX, chartArea.top);
-        ctx.lineTo(pixelX, chartArea.bottom);
-        ctx.stroke();
-        ctx.restore();
-      }
-    },
-  };
 }
 
 // Redraws (no animation, no data re-parse) at a modest cadence so the sync
