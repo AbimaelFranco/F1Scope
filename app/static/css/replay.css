@@ -61,7 +61,17 @@ body.replay-body {
   left: 50%;
   bottom: 1.25rem;
   transform: translateX(-50%);
-  z-index: var(--z-panel);
+  /* #64: this is a floating control bar over the 3D scene, not a panel
+   * docked to a screen edge (unlike standings-panel/telemetry-panel,
+   * which legitimately share --z-panel with each other since neither
+   * should ever need to render above the other). At viewport widths
+   * where this bar's centered width reaches far enough to touch
+   * standings-panel's left-docked edge, sharing --z-panel meant
+   * standings-panel (later in DOM) won the stacking tie and silently
+   * ate clicks on play/pause. --z-overlay groups it with the other
+   * floating controls (replay-topbar, settings-panel) that must always
+   * render above the docked side panels for the same reason. */
+  z-index: var(--z-overlay);
   display: flex;
   align-items: center;
   gap: 0.75rem;
