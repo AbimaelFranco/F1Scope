@@ -1,0 +1,49 @@
+# F1Scope — one-command local/deployment stack (#23).
+#
+# Run from the repo root: `docker compose -f docker/docker-compose.yml up --build`
+# (see the README for the full walkthrough, #24). `build.context: ..` means
+# the Dockerfile still sees the repo root as its build context, same as a
+# manual `docker build -f docker/Dockerfile .` from the repo root.
+
+# Compose derives the project name (and therefore volume/network names)
+# from the containing directory otherwise — "docker" here, since the file
+# lives in docker/ per docs/PLANNING.md's layout — giving a confusing
+# `docker_f1scope-cache` volume. Pinned explicitly instead.
+name: f1scope
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: f1scope:latest
+    ports:
+      - "5000:5000"
+    env_file:
+      # Reuses the same .env local dev already uses (see README/.env.example)
+      # instead of a separate Docker-only copy that could drift from it.
+      - ../.env
+    environment:
+      # Always production here regardless of what .env has — Flask's own
+      # dev server (triggered by FLASK_ENV=development) has no place in a
+      # container that already runs gunicorn as its entrypoint.
+      FLASK_ENV: production
+    volumes:
+      # Named volume, not a bind mount: keeps the ingestion cache
+      # (SessionCache's "ingest once, ever" store — see
+      # app/services/cache.py) across container restarts/recreates without
+      # depending on a specific host path. `docker compose down -v` is the
+      # explicit opt-in to wipe it; a plain `down`/`up` never does.
+      - f1scope-cache:/app/instance/cache
+    restart: unless-stopped
+    healthcheck:
+      # No curl/wget in the slim base image (#22 keeps it deliberately
+      # bare) — urllib is stdlib, so this needs nothing extra installed.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  f1scope-cache:
