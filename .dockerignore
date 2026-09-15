@@ -1,0 +1,29 @@
+# Keep the build context (and therefore image layers/cache invalidation)
+# limited to what the image actually needs: app/, requirements.txt,
+# wsgi.py — see docker/Dockerfile.
+
+.git/
+.github/
+.claude/
+docs/
+tests/
+
+# Local dev artifacts — never baked into the image; env vars come from
+# docker-compose.yml's `environment`/`env_file` at run time instead, and
+# the cache is a mounted volume (#23), not image content.
+.env
+.env.*
+!.env.example
+instance/
+.venv/
+.venv-e2e/
+scripts_tmp/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Editor/OS cruft
+.vscode/
+.idea/
+.DS_Store
