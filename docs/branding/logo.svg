@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" width="1200" height="300" role="img" aria-labelledby="f1scope-logo-title">
+  <title id="f1scope-logo-title">F1Scope</title>
+  <defs>
+    <!-- Same cyan/glow language as theme.css's accent-cyan / glow-cyan tokens -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="blur1" />
+      <feGaussianBlur stdDeviation="14" result="blur2" />
+      <feMerge>
+        <feMergeNode in="blur2" />
+        <feMergeNode in="blur1" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="glowSoft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#18e0ff" stroke-opacity="0.08" stroke-width="1" />
+    </pattern>
+    <linearGradient id="trackFade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#18e0ff" stop-opacity="0" />
+      <stop offset="15%" stop-color="#18e0ff" stop-opacity="0.9" />
+      <stop offset="85%" stop-color="#18e0ff" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#18e0ff" stop-opacity="0" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect x="0" y="0" width="1200" height="300" rx="16" fill="#05070c" />
+  <rect x="0" y="0" width="1200" height="300" rx="16" fill="url(#grid)" />
+
+  <!-- Corner brackets, same motif as the bracketed hud-panel component -->
+  <g stroke="#18e0ff" stroke-width="3" fill="none" opacity="0.85">
+    <path d="M 24 60 L 24 24 L 60 24" />
+    <path d="M 1140 24 L 1176 24 L 1176 60" />
+    <path d="M 1176 240 L 1176 276 L 1140 276" />
+    <path d="M 60 276 L 24 276 L 24 240" />
+  </g>
+
+  <!-- Stylized circuit line threading behind the wordmark, echoing the
+       3D replay's track tube -->
+  <path d="M 90 190
+           C 180 130, 260 130, 320 175
+           C 380 220, 430 150, 470 150
+           L 730 150
+           C 770 150, 820 220, 880 175
+           C 940 130, 1020 130, 1110 190"
+        fill="none" stroke="url(#trackFade)" stroke-width="6" stroke-linecap="round" opacity="0.55" />
+
+  <!-- Wordmark -->
+  <text x="600" y="150" text-anchor="middle" dominant-baseline="middle"
+        font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900"
+        font-size="104" letter-spacing="10" fill="#18e0ff" filter="url(#glow)">F1SCOPE</text>
+  <text x="600" y="150" text-anchor="middle" dominant-baseline="middle"
+        font-family="Arial Black, Arial, Helvetica, sans-serif" font-weight="900"
+        font-size="104" letter-spacing="10" fill="#eafcff">F1SCOPE</text>
+
+  <!-- Tagline -->
+  <text x="600" y="222" text-anchor="middle" dominant-baseline="middle"
+        font-family="Consolas, 'Courier New', monospace" font-size="22" letter-spacing="6"
+        fill="#8ea0bf">3D RACE REPLAY &amp; TELEMETRY</text>
+</svg>
