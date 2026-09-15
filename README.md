@@ -1,10 +1,44 @@
-# F1Scope
+<p align="center">
+  <img src="docs/branding/logo.svg" alt="F1Scope" width="640">
+</p>
 
-Interactive 3D Formula 1 race replay and telemetry analysis powered by [OpenF1](https://openf1.org/).
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3.11%2B-18e0ff?style=for-the-badge&logo=python&logoColor=18e0ff&labelColor=05070c" alt="Python 3.11+">
+  <img src="https://img.shields.io/badge/Flask-3.x-18e0ff?style=for-the-badge&logo=flask&logoColor=18e0ff&labelColor=05070c" alt="Flask 3.x">
+  <img src="https://img.shields.io/badge/Three.js-3D-18e0ff?style=for-the-badge&logo=threedotjs&logoColor=18e0ff&labelColor=05070c" alt="Three.js">
+  <img src="https://img.shields.io/badge/Chart.js-telemetry-18e0ff?style=for-the-badge&logo=chartdotjs&logoColor=18e0ff&labelColor=05070c" alt="Chart.js">
+  <img src="https://img.shields.io/badge/Docker-ready-18e0ff?style=for-the-badge&logo=docker&logoColor=18e0ff&labelColor=05070c" alt="Docker ready">
+  <br>
+  <img src="https://img.shields.io/badge/pytest-53%20passing-18e0ff?style=for-the-badge&logo=pytest&logoColor=18e0ff&labelColor=05070c" alt="pytest: 53 passing">
+  <img src="https://img.shields.io/badge/Ruff-checked-18e0ff?style=for-the-badge&logo=ruff&logoColor=18e0ff&labelColor=05070c" alt="Ruff checked">
+  <img src="https://img.shields.io/badge/OpenF1-API-18e0ff?style=for-the-badge&labelColor=05070c" alt="OpenF1 API">
+  <img src="https://img.shields.io/badge/License-MIT-18e0ff?style=for-the-badge&labelColor=05070c" alt="MIT License">
+</p>
+
+F1Scope turns a historical Formula 1 session into an interactive 3D replay. Pick any race
+weekend from 2023 onward, and watch the full grid move in real time around a to-scale
+reconstruction of the actual circuit — play, pause, scrub through the timeline, or jump to
+1×–100× speed, exactly like scrubbing a broadcast recording. A live HUD tracks positions,
+gaps to the leader, intervals and lap times as the replay plays, so the standings panel tells
+the same story the 3D scene is showing. Pick two drivers and a side-by-side telemetry panel
+compares their speed, throttle, brake, RPM and gear across the entire race, with a synced
+cursor that tracks the same clock as the 3D replay — pause the car and the chart pauses with
+it. Everything runs on real session data: pulled once from [OpenF1](https://openf1.org/)'s
+free public API, cached locally, and never re-fetched, so the second time you watch a session
+it loads instantly. The whole thing is wrapped in a self-contained Docker image you can have
+running with one command.
 
 See [DESCRIPTION.MD](DESCRIPTION.MD) for the project pitch, [docs/PLANNING.md](docs/PLANNING.md)
 for the approved scope/architecture, and [docs/architecture/](docs/architecture/) for the
 interactive architecture diagram.
+
+## Screenshots
+
+<p align="center">
+  <a href="docs/screenshots/session-select.png"><img src="docs/screenshots/session-select.png" alt="Session selection screen" width="32%"></a>
+  <a href="docs/screenshots/replay-hud.png"><img src="docs/screenshots/replay-hud.png" alt="3D replay with live standings HUD" width="32%"></a>
+  <a href="docs/screenshots/telemetry.png"><img src="docs/screenshots/telemetry.png" alt="3D replay with driver telemetry comparison" width="32%"></a>
+</p>
 
 ## Stack
 
@@ -24,6 +58,7 @@ app/
 docker/
 ├── Dockerfile          # Flask app image (gunicorn entrypoint)
 └── docker-compose.yml  # One-command stack: builds the image, persists the cache volume
+tests/            # Unit + integration tests (pytest)
 ```
 
 ## Getting started
@@ -85,6 +120,13 @@ Linting and formatting are handled by [Ruff](https://docs.astral.sh/ruff/) (conf
 ```bash
 ruff check .           # lint
 ruff format .          # auto-format
+```
+
+Tests (unit tests for the OpenF1 client/ingestion/cache layer, integration tests for the
+internal API — see `tests/`) run with [pytest](https://docs.pytest.org/):
+
+```bash
+pytest
 ```
 
 - `requirements.txt` — runtime dependencies only (includes gunicorn, the Docker image's
