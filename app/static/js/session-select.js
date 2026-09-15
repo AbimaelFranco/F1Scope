@@ -1,7 +1,9 @@
 /* Cascading year -> meeting -> session picker for the F1Scope landing page.
  * Talks only to the internal API (/api/meetings, /api/sessions) added in
- * issue #10 — never calls OpenF1 directly from the browser. Restyled with
- * the cyberpunk/HUD theme in milestone E7; this is the functional layer. */
+ * issue #10 — never calls OpenF1 directly from the browser. Dynamically
+ * generated markup (session summary heading, replay CTA link) carries the
+ * cyberpunk/HUD theme's .hud-heading/.hud-btn classes (#21) same as the
+ * static markup in index.html. */
 (function () {
   "use strict";
 
@@ -130,11 +132,11 @@
 
     summary.hidden = false;
     summary.innerHTML = `
-      <h2>${session.session_name}</h2>
+      <h2 class="hud-heading hud-heading--accent">${session.session_name}</h2>
       <p>${meetingLabel} — ${session.session_type}</p>
       <p>${new Date(session.date_start).toLocaleString()}</p>
       <p class="session-key">session_key: ${session.session_key}</p>
-      <p><a id="replay-link" class="replay-link" href="/replay?session_key=${session.session_key}">Ver replay 3D &rarr;</a></p>
+      <p><a id="replay-link" class="replay-link hud-btn" href="/replay?session_key=${session.session_key}">Ver replay 3D &rarr;</a></p>
     `;
     updateUrl(session.session_key);
     loadDrivers(session.session_key);

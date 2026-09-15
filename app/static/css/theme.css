@@ -52,6 +52,7 @@
   /* -- Palette: backgrounds -- */
   --bg-void: #05070c;             /* page background */
   --bg-panel: #0a0e16;            /* opaque fallback for panels */
+  --bg-panel-a75: rgba(5, 7, 12, 0.75);  /* lighter-touch panel (status readout, small buttons) */
   --bg-panel-a85: rgba(5, 7, 12, 0.85);  /* translucent HUD panel over the 3D scene */
   --bg-panel-a90: rgba(5, 7, 12, 0.9);
   --bg-raised: #10151f;           /* inputs, selects */
@@ -90,6 +91,16 @@
   --radius-md: 6px;
   --radius-lg: 10px;
   --radius-pill: 999px;
+
+  /* -- Stacking --
+   * Two tiers: docked panels (side/bottom HUD panels that occupy a fixed
+   * region of the viewport) vs. floating overlay controls (status readout,
+   * top bar, settings panel — meant to always render above the docked
+   * panels regardless of DOM order, since a docked panel's own translucent
+   * background otherwise silently wins the last-in-DOM-order tiebreak
+   * whenever both are visible over the same screen region — see #21). */
+  --z-panel: 10;
+  --z-overlay: 20;
 }
 
 /* -- Base document -------------------------------------------------------
