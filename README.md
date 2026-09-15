@@ -46,6 +46,43 @@ Python + Flask, packaged with Docker. Data comes from OpenF1's free-tier API (hi
 sessions, 3 req/s / 30 req/min rate limit) — sessions are ingested once and served from a
 local cache, never re-fetched per request. See `docs/PLANNING.md` for the full rationale.
 
+## Architecture
+
+<p align="center">
+  <a href="docs/architecture/f1scope-arquitectura.png">
+    <img src="docs/architecture/f1scope-arquitectura.png" alt="F1Scope architecture diagram" width="100%">
+  </a>
+</p>
+
+An interactive version of this diagram (pan/zoom, click a node for detail) is at
+[docs/architecture/f1scope-architecture.html](docs/architecture/f1scope-architecture.html).
+
+There are exactly two request paths through the app, both served by the same Flask process
+inside the Docker container:
+
+1. **Page loads** (`GET /`, `GET /replay`) return server-rendered HTML — Jinja2 templates
+   plus the static JS/CSS bundle (Three.js for the 3D scene, Chart.js for telemetry, the
+   cyberpunk theme). This is the "Flask · Vistas web" box: it never talks to OpenF1 or the
+   cache, it just ships the page that then runs in the browser.
+2. **Data fetches** (`fetch('/api/...')`, made by that browser-side JS after the page has
+   loaded) hit the internal JSON API — "Flask · API interna". Session/meeting/driver
+   *browsing* endpoints (`/api/sessions`, `/api/meetings`, `/api/drivers`) proxy straight
+   through to OpenF1 live, since those payloads are small and only fetched once per browse
+   action. Everything needed to actually replay a session (`/api/session/<key>/track`,
+   `/cars`, `/telemetry`, `/standings`) instead goes through **ingestion + cache**
+   (`get_or_ingest_session`, the "Ingesta + caché" box): the first request for a given
+   `session_key` triggers a full pull from OpenF1 — through the rate-limited client, capped
+   at OpenF1's free-tier 3 req/s / 30 req/min — and everything it returns is written to a
+   local per-session cache (plain JSON files, one per OpenF1 endpoint, under
+   `instance/cache/<session_key>/` — see `app/services/cache.py`'s module docstring for why
+   files instead of a database). Every request after that for the same session reads straight
+   from that cache and never touches OpenF1 again.
+
+That cache directory is what `docker-compose.yml`'s named volume (the dashed box in the
+diagram) persists across container restarts — without it, "ingested once" would really mean
+"ingested once per container lifetime," and every `docker compose down`/`up` would re-pull
+and re-throttle through OpenF1 for sessions you'd already watched.
+
 ## Project structure
 
 ```
